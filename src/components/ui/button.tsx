@@ -25,6 +25,7 @@ const buttonVariants = cva(
         // Nova variante com alto contraste para garantir acessibilidade
         highContrast: "bg-black text-white hover:bg-gray-800 border border-black",
         goldContrast: "bg-[#D4AF37] text-black hover:bg-[#B8860B] border border-[#D4AF37] font-bold",
+        whatsapp: "bg-[#25D366] text-white hover:bg-[#1EBEA5]",
       },
       size: {
         default: "h-10 px-4 py-2",

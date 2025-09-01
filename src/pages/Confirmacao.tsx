@@ -48,10 +48,7 @@ const Confirmacao = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <Button
-            asChild
-            className="px-6 bg-[#25D366] hover:bg-[#1EBEA5] text-white"
-          >
+          <Button asChild variant="whatsapp">
             <Link to={whatsappLink} target="_blank" rel="noopener noreferrer">
               Falar com a Atendente
             </Link>

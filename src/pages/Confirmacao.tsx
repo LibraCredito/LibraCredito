@@ -23,11 +23,16 @@ const Confirmacao = () => {
   }, []);
 
   useLayoutEffect(() => {
+    const scrollingElement = document.scrollingElement || document.documentElement;
+    scrollingElement?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
       // Garante que o usuário comece no topo da página de confirmação
       mainContent.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      mainContent.parentElement?.scrollTo?.({ top: 0, left: 0, behavior: 'auto' });
     }
+
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, []);
 

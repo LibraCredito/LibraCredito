@@ -20,15 +20,25 @@ vi.mock('@/components/ui/button', () => ({
 
 describe('Confirmacao page', () => {
   let mainScrollMock: ReturnType<typeof vi.fn>;
+  let parentScrollMock: ReturnType<typeof vi.fn>;
+  let docScrollMock: ReturnType<typeof vi.fn>;
   let windowScrollMock: ReturnType<typeof vi.fn>;
   let metaSetAttributeMock: ReturnType<typeof vi.fn>;
+  let originalScrollingElement: Element | null;
 
   beforeEach(() => {
     window.localStorage.clear();
     mainScrollMock = vi.fn();
+    parentScrollMock = vi.fn();
+    docScrollMock = vi.fn();
     windowScrollMock = vi.fn();
     metaSetAttributeMock = vi.fn();
-    document.getElementById = vi.fn().mockReturnValue({ scrollTo: mainScrollMock });
+    document.getElementById = vi
+      .fn()
+      .mockReturnValue({
+        scrollTo: mainScrollMock,
+        parentElement: { scrollTo: parentScrollMock },
+      });
     document.querySelector = vi
       .fn()
       .mockImplementation((selector) =>
@@ -36,11 +46,19 @@ describe('Confirmacao page', () => {
           ? { setAttribute: metaSetAttributeMock }
           : null
       );
+    originalScrollingElement = document.scrollingElement;
+    Object.defineProperty(document, 'scrollingElement', {
+      value: { scrollTo: docScrollMock },
+      configurable: true,
+    });
     window.scrollTo = windowScrollMock;
-
   });
 
   afterEach(() => {
+    Object.defineProperty(document, 'scrollingElement', {
+      value: originalScrollingElement,
+      configurable: true,
+    });
     vi.restoreAllMocks();
   });
 
@@ -79,7 +97,17 @@ describe('Confirmacao page', () => {
       'Confirmação de envio da simulação. Em breve nossa equipe entrará em contato.'
     );
     expect(metaSetAttributeMock).toHaveBeenCalledTimes(1);
+    expect(docScrollMock).toHaveBeenCalledWith({
+      top: 0,
+      left: 0,
+      behavior: 'auto',
+    });
     expect(mainScrollMock).toHaveBeenCalledWith({
+      top: 0,
+      left: 0,
+      behavior: 'auto',
+    });
+    expect(parentScrollMock).toHaveBeenCalledWith({
       top: 0,
       left: 0,
       behavior: 'auto',
@@ -89,7 +117,9 @@ describe('Confirmacao page', () => {
       left: 0,
       behavior: 'auto',
     });
+    expect(docScrollMock).toHaveBeenCalledTimes(1);
     expect(mainScrollMock).toHaveBeenCalledTimes(1);
+    expect(parentScrollMock).toHaveBeenCalledTimes(1);
     expect(windowScrollMock).toHaveBeenCalledTimes(1);
   });
 });

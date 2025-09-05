@@ -79,24 +79,6 @@ export interface ParceiroData {
   updated_at?: string;
 }
 
-export interface UserJourneyData {
-  id?: string;
-  session_id: string;
-  visitor_id?: string;
-  utm_source?: string;
-  utm_medium?: string;
-  utm_campaign?: string;
-  utm_term?: string;
-  utm_content?: string;
-  referrer?: string;
-  landing_page: string;
-  pages_visited: PageVisit[];
-  time_on_site?: number;
-  device_info?: DeviceInfo;
-  ip_address?: string;
-  created_at?: string;
-  updated_at?: string;
-}
 
 export interface PageVisit {
   url: string;
@@ -111,6 +93,38 @@ export interface DeviceInfo {
   device_type: 'mobile' | 'tablet' | 'desktop';
   browser: string;
   os: string;
+}
+
+export interface UserJourneySimulacaoData {
+  id?: string;
+  session_id: string;
+  visitor_id?: string;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
+  utm_content?: string | null;
+  referrer?: string | null;
+  landing_page?: string;
+  pages_visited?: PageVisit[];
+  time_on_site?: number;
+  device_info?: DeviceInfo;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  nome_completo?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  cidade?: string | null;
+  valor_emprestimo?: number | null;
+  valor_imovel?: number | null;
+  parcelas?: number | null;
+  tipo_amortizacao?: string | null;
+  parcela_inicial?: number | null;
+  parcela_final?: number | null;
+  imovel_proprio?: 'proprio' | 'terceiro' | null;
+  status?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BlogPostData {
@@ -145,10 +159,10 @@ export interface Database {
         Insert: Omit<ParceiroData, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ParceiroData, 'id' | 'created_at'>>;
       };
-      user_journey: {
-        Row: UserJourneyData;
-        Insert: Omit<UserJourneyData, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<UserJourneyData, 'id' | 'created_at'>>;
+      user_journey_simulacoes: {
+        Row: UserJourneySimulacaoData;
+        Insert: Omit<UserJourneySimulacaoData, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<UserJourneySimulacaoData, 'id' | 'created_at'>>;
       };
       blog_posts: {
         Row: BlogPostData;
@@ -243,9 +257,23 @@ export const supabaseApi = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
+  },
+
+  // User Journey + Simulação
+  async createUserJourneySimulacao(
+    data: Database['public']['Tables']['user_journey_simulacoes']['Insert']
+  ) {
+    const { data: result, error } = await supabase
+      .from('user_journey_simulacoes')
+      .upsert(data, { onConflict: 'session_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return result;
   },
 
   // Parceiros
@@ -283,50 +311,27 @@ export const supabaseApi = {
     return data;
   },
 
-  // User Journey
-  async createUserJourney(data: Database['public']['Tables']['user_journey']['Insert']) {
-    // Usar insert simples primeiro, depois upsert se necessário
+  async updateUserJourney(
+    sessionId: string,
+    data: Database['public']['Tables']['user_journey_simulacoes']['Update']
+  ) {
     const { data: result, error } = await supabase
-      .from('user_journey')
-      .insert(data)
-      .select()
-      .maybeSingle();
-    
-    if (error) {
-      // Se der erro de conflito, tentar upsert
-      if (error.code === '23505') { // código de unique constraint violation
-        const { data: upsertResult, error: upsertError } = await supabase
-          .from('user_journey')
-          .upsert(data, { onConflict: 'session_id' })
-          .select()
-          .maybeSingle();
-        
-        if (upsertError) throw upsertError;
-        return upsertResult;
-      }
-      throw error;
-    }
-    return result;
-  },
-
-  async updateUserJourney(sessionId: string, data: Database['public']['Tables']['user_journey']['Update']) {
-    const { data: result, error } = await supabase
-      .from('user_journey')
+      .from('user_journey_simulacoes')
       .update(data)
       .eq('session_id', sessionId)
       .select()
       .maybeSingle();
-    
+
     if (error) throw error;
     return result;
   },
 
   async getUserJourney(sessionId: string) {
     const { data, error } = await supabase
-      .from('user_journey')
+      .from('user_journey_simulacoes')
       .select('*')
       .eq('session_id', sessionId)
-      .maybeSingle(); // Use maybeSingle ao invés de single para evitar erro quando não encontrar
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -334,7 +339,7 @@ export const supabaseApi = {
 
   async getUserJourneysBySessionIds(sessionIds: string[]) {
     const { data, error } = await supabase
-      .from('user_journey')
+      .from('user_journey_simulacoes')
       .select('*')
       .in('session_id', sessionIds);
 
@@ -344,7 +349,7 @@ export const supabaseApi = {
 
   async getUserJourneysByVisitorIds(visitorIds: string[]) {
     const { data, error } = await supabase
-      .from('user_journey')
+      .from('user_journey_simulacoes')
       .select('*')
       .in('visitor_id', visitorIds);
 

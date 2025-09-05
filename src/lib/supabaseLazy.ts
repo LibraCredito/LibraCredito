@@ -126,9 +126,23 @@ async function loadSupabaseClient() {
             .eq('id', id)
             .select()
             .single();
-          
+
           if (error) throw error;
           return data;
+        },
+
+        // User Journey + Simulação
+        async createUserJourneySimulacao(
+          data: Database['public']['Tables']['user_journey_simulacoes']['Insert']
+        ) {
+          const { data: result, error } = await client
+            .from('user_journey_simulacoes')
+            .upsert(data, { onConflict: 'session_id' })
+            .select()
+            .single();
+
+          if (error) throw error;
+          return result;
         },
 
         // Parceiros
@@ -166,49 +180,28 @@ async function loadSupabaseClient() {
           return data;
         },
 
-        // User Journey
-        async createUserJourney(data: Database['public']['Tables']['user_journey']['Insert']) {
+        async updateUserJourney(
+          sessionId: string,
+          data: Database['public']['Tables']['user_journey_simulacoes']['Update']
+        ) {
           const { data: result, error } = await client
-            .from('user_journey')
-            .insert(data)
-            .select()
-            .maybeSingle();
-          
-          if (error) {
-            if (error.code === '23505') {
-              const { data: upsertResult, error: upsertError } = await client
-                .from('user_journey')
-                .upsert(data, { onConflict: 'session_id' })
-                .select()
-                .maybeSingle();
-              
-              if (upsertError) throw upsertError;
-              return upsertResult;
-            }
-            throw error;
-          }
-          return result;
-        },
-
-        async updateUserJourney(sessionId: string, data: Database['public']['Tables']['user_journey']['Update']) {
-          const { data: result, error } = await client
-            .from('user_journey')
+            .from('user_journey_simulacoes')
             .update(data)
             .eq('session_id', sessionId)
             .select()
             .maybeSingle();
-          
+
           if (error) throw error;
           return result;
         },
 
         async getUserJourney(sessionId: string) {
           const { data, error } = await client
-            .from('user_journey')
+            .from('user_journey_simulacoes')
             .select('*')
             .eq('session_id', sessionId)
             .maybeSingle();
-          
+
           if (error) throw error;
           return data;
         },

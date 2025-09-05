@@ -21,7 +21,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import type { UserJourneyData, PageVisit, DeviceInfo } from '@/lib/supabase';
+import type {
+  UserJourneySimulacaoData,
+  PageVisit,
+  DeviceInfo
+} from '@/lib/supabase';
 
 // Lazy loader para evitar carregar Supabase na primeira pintura
 type SupabaseApi = typeof import('@/lib/supabase').supabaseApi;
@@ -52,7 +56,7 @@ interface UserJourneyHook {
   isTracking: boolean;
   trackPageVisit: (url?: string) => void;
   trackSimulation: (simulationData: unknown) => void;
-  getJourneyData: () => UserJourneyData | null;
+  getJourneyData: () => UserJourneySimulacaoData | null;
   updateTimeOnSite: () => void;
 }
 
@@ -142,7 +146,8 @@ export function useUserJourney(): UserJourneyHook {
   const [sessionId, setSessionId] = useState<string>('');
   const [visitorId, setVisitorId] = useState<string>('');
   const [isTracking, setIsTracking] = useState(false);
-  const [journeyData, setJourneyData] = useState<UserJourneyData | null>(null);
+  const [journeyData, setJourneyData] =
+    useState<UserJourneySimulacaoData | null>(null);
   const pageStartTime = useRef<number>(Date.now());
   const sessionStartTime = useRef<number>(Date.now());
   const ipFetchedRef = useRef<boolean>(false);
@@ -245,7 +250,7 @@ export function useUserJourney(): UserJourneyHook {
           const utms = extractUTMParams();
           const deviceInfo = getDeviceInfo();
 
-          const newJourney: UserJourneyData = {
+          const newJourney: UserJourneySimulacaoData = {
             session_id: sessionId,
             visitor_id: visitorId,
             utm_source: utms.utm_source || null,
@@ -260,7 +265,9 @@ export function useUserJourney(): UserJourneyHook {
             ip_address: null
           };
 
-          existingJourney = await supabaseApi.createUserJourney(newJourney);
+          existingJourney = await supabaseApi.createUserJourneySimulacao(
+            newJourney
+          );
 
           if (process.env.NODE_ENV === 'development') {
             console.log('Nova jornada criada:', existingJourney);

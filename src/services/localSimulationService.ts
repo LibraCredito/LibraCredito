@@ -15,7 +15,12 @@
  */
 
 import { validateEmail, validatePhone } from '@/utils/validations';
-import { supabaseApi, SimulacaoData, supabase } from '@/lib/supabase';
+import {
+  supabaseApi,
+  SimulacaoData,
+  supabase,
+  UserJourneySimulacaoData
+} from '@/lib/supabase';
 
 // Reutilizar interfaces do serviço original
 export interface SimulationInput {
@@ -96,7 +101,6 @@ export class LocalSimulationService {
     const results: T[] = [];
     for (let i = 0; i < ids.length; i += chunkSize) {
       const chunk = ids.slice(i, i + chunkSize);
-      let supabaseErrorOccurred = false;
       try {
         results.push(...await fetchFn(chunk));
       } catch (journeyError) {
@@ -212,7 +216,10 @@ export class LocalSimulationService {
                                   input.telefone !== '';
 
         if (hasRealContactData) {
-          const supabaseData = {
+          const supabaseData: Omit<
+            UserJourneySimulacaoData,
+            'id' | 'created_at' | 'updated_at'
+          > = {
             session_id: input.sessionId,
             visitor_id: input.visitorId || null,
 
@@ -240,7 +247,9 @@ export class LocalSimulationService {
             original_local_id: simulationId
           });
 
-          const supabaseResult = await supabaseApi.createSimulacao(supabaseData);
+          const supabaseResult = await supabaseApi.createUserJourneySimulacao(
+            supabaseData
+          );
           console.log('✅ Simulação salva no Supabase:', {
             success: !!supabaseResult?.id,
             supabase_id: supabaseResult?.id,

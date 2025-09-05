@@ -19,9 +19,9 @@
  * 5. Retorna dados para o componente
  */
 
-import { supabaseApi, SimulacaoData } from '@/lib/supabase';
+import { supabaseApi, UserJourneySimulacaoData } from '@/lib/supabase';
 import { simulateCredit } from '@/services/simulationApi';
-import { validateEmail, validatePhone, formatPhone } from '@/utils/validations';
+import { validateEmail, formatPhone } from '@/utils/validations';
 import { PloomesService } from '@/services/ploomesService';
 import { WebhookService } from '@/services/webhookService';
 
@@ -96,10 +96,16 @@ export class SimulationService {
       console.log('✅ Resposta da API:', apiResult);
       
       // 4. Processar resultado da API
-      const processedResult = this.processApiResult(apiResult, input.tipoAmortizacao, input.parcelas);
+      const processedResult = this.processApiResult(
+        apiResult,
+        input.tipoAmortizacao
+      );
       
       // 5. Preparar dados para Supabase
-      const supabaseData: Omit<SimulacaoData, 'id' | 'created_at'> = {
+      const supabaseData: Omit<
+        UserJourneySimulacaoData,
+        'id' | 'created_at' | 'updated_at'
+      > = {
         session_id: input.sessionId,
         nome_completo: input.nomeCompleto,
         email: input.email,
@@ -120,7 +126,9 @@ export class SimulationService {
       console.log('💾 Salvando no Supabase:', supabaseData);
       
       // 6. Salvar no Supabase
-      const savedSimulation = await supabaseApi.createSimulacao(supabaseData);
+      const savedSimulation = await supabaseApi.createUserJourneySimulacao(
+        supabaseData
+      );
       
       console.log('✅ Simulação salva:', savedSimulation);
       
@@ -358,7 +366,7 @@ export class SimulationService {
   /**
    * Processar resultado da API
    */
-  private static processApiResult(apiResult: any, amortizacao: string, parcelas: number) {
+  private static processApiResult(apiResult: any, amortizacao: string) {
     if (!apiResult || !apiResult.parcelas || !Array.isArray(apiResult.parcelas)) {
       throw new Error('API retornou estrutura de dados inválida');
     }

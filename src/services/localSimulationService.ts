@@ -14,6 +14,7 @@
  * - Compatibilidade total com componentes existentes
  */
 
+import { getAlertWebhookUrl } from '@/lib/env';
 import { validateEmail, validatePhone } from '@/utils/validations';
 import {
   supabaseApi,
@@ -896,7 +897,7 @@ export class LocalSimulationService {
    * Envia alerta via webhook quando o contato não pôde ser salvo
    */
   private static async sendFailureAlert(input: ContactFormInput, error: unknown): Promise<void> {
-    const webhookUrl = process.env.VITE_ALERT_WEBHOOK_URL;
+    const webhookUrl = getAlertWebhookUrl();
     if (!webhookUrl) {
       console.warn('⚠️ URL de alerta não configurada');
       return;

@@ -19,6 +19,7 @@
  * 5. Retorna dados para o componente
  */
 
+import { getSecondaryWebhookUrl } from '@/lib/env';
 import { supabaseApi, UserJourneySimulacaoData } from '@/lib/supabase';
 import { simulateCredit } from '@/services/simulationApi';
 import { validateEmail, formatPhone } from '@/utils/validations';
@@ -280,7 +281,7 @@ export class SimulationService {
           WebhookService.sendSimulationData(webhookPayload)
         ];
 
-        const secondaryUrl = process.env.VITE_WEBHOOK_SECONDARY_URL;
+        const secondaryUrl = getSecondaryWebhookUrl();
         if (secondaryUrl) {
           webhookCalls.push(
             WebhookService.sendSimulationData(webhookPayload, { url: secondaryUrl })

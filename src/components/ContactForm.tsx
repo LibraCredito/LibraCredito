@@ -21,7 +21,8 @@ import { cn } from '@/lib/utils';
  */
 interface ContactFormProps {
   simulationResult: {
-    id?: string;
+    id: string;
+    userJourneyId?: string;
     valor: number;
     amortizacao: string;
     parcelas: number;
@@ -106,6 +107,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
     console.log('🔍 Debug dados da simulação:', {
       simulationResult,
       simulationId: simulationResult.id,
+      userJourneyId: simulationResult.userJourneyId,
       sessionId,
       hasId: !!simulationResult.id,
       hasSessionId: !!sessionId
@@ -153,6 +155,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
         simulationId: simulationResult.id,
         sessionId,
         visitorId,
+        ...(simulationResult.userJourneyId ? { userJourneyId: simulationResult.userJourneyId } : {}),
         nomeCompleto: nome,
         email,
         telefone,

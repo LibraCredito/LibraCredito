@@ -100,4 +100,89 @@ describe('LocalSimulationService', () => {
     const fetchCalls = (global as any).fetch.mock.calls.map((c: any[]) => c[0]);
     expect(fetchCalls).toContain('https://alert.test');
   });
+
+  it('cria registro no Supabase quando recebe ID local sem correspondência', async () => {
+    const inserted: any[] = [];
+
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table !== 'simulacoes') {
+        throw new Error(`Unexpected table ${table}`);
+      }
+
+      const createOrderResult = () => {
+        const response = { data: [] as any[], error: null };
+        const orderResult: any = {};
+        orderResult.limit = async () => response;
+        orderResult.then = (resolve: any) => resolve(response);
+        orderResult.catch = () => orderResult;
+        orderResult.finally = () => orderResult;
+        return orderResult;
+      };
+
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi.fn(() => createOrderResult()),
+            single: vi.fn(async () => ({ data: null, error: null }))
+          }))
+        })),
+        insert: vi.fn((data: any) => {
+          inserted.push(data);
+          return {
+            select: async () => ({ data: [{ id: 'supabase-id', ...data }], error: null })
+          };
+        }),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            select: async () => ({ data: [{ id: 'supabase-id' }], error: null })
+          }))
+        }))
+      };
+    });
+
+    const { LocalSimulationService } = await import('../localSimulationService');
+
+    localStorage.setItem('libra_local_simulations', JSON.stringify([
+      {
+        id: 'local_abc',
+        valor: 100,
+        amortizacao: 'PRICE',
+        parcelas: 36,
+        primeiraParcela: 100,
+        ultimaParcela: 80,
+        valorEmprestimo: 1000,
+        valorImovel: 2000,
+        cidade: 'Cidade'
+      }
+    ]));
+
+    const input = {
+      simulationId: 'local_abc',
+      sessionId: 'sess1',
+      visitorId: 'visit1',
+      nomeCompleto: 'John Local',
+      email: 'john@example.com',
+      telefone: '11999999999',
+      cidade: 'Cidade',
+      imovelProprio: 'proprio' as const,
+      valorDesejadoEmprestimo: 1000,
+      valorImovelGarantia: 2000,
+      quantidadeParcelas: 36,
+      tipoAmortizacao: 'PRICE',
+      valorParcelaCalculada: 100,
+      aceitaPolitica: true
+    };
+
+    const result = await LocalSimulationService.processContact(input);
+
+    expect(result.success).toBe(true);
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]).toMatchObject({
+      session_id: 'sess1',
+      visitor_id: 'visit1',
+      cidade: 'Cidade',
+      valor_emprestimo: 1000,
+      valor_imovel: 2000
+    });
+  });
 });

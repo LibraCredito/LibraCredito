@@ -21,6 +21,7 @@ import {
   supabase,
   UserJourneySimulacaoData
 } from '@/lib/supabase';
+import { WebhookService } from '@/services/webhookService';
 
 // Reutilizar interfaces do serviço original
 export interface SimulationInput {
@@ -325,7 +326,8 @@ export class LocalSimulationService {
       }
 
       // Obter dados da simulação do Supabase
-      let simulationData = null;
+      let simulationData: SimulacaoData | null = null;
+      let latestSimulationRecord: SimulacaoData | null = null;
       try {
         if (input.simulationId) {
           // Verificar se é um ID local (que não existe no Supabase)
@@ -357,6 +359,7 @@ export class LocalSimulationService {
               console.warn('⚠️ Nenhuma simulação encontrada com session_id:', input.sessionId);
             }
             simulationData = data;
+            latestSimulationRecord = data;
           } else {
             // Para IDs do Supabase, buscar normalmente
             const { data } = await supabase
@@ -365,6 +368,7 @@ export class LocalSimulationService {
               .eq('id', input.simulationId)
               .single();
             simulationData = data;
+            latestSimulationRecord = data;
           }
           console.log('📊 Dados da simulação obtidos:', simulationData);
         }
@@ -486,7 +490,7 @@ export class LocalSimulationService {
 
             // Usar a mesma lógica de busca para atualização/criação
             const isLocalId = input.simulationId.startsWith('local_');
-            let existingData = null;
+            let existingData: SimulacaoData | null = null;
             let updateResult = null;
 
             if (isLocalId) {
@@ -619,6 +623,14 @@ export class LocalSimulationService {
               success: !!data?.[0]
             });
 
+            if (data && data.length > 0) {
+              latestSimulationRecord = data[0] as SimulacaoData;
+            } else if (existingData) {
+              latestSimulationRecord = existingData;
+            } else if (!latestSimulationRecord && simulationData) {
+              latestSimulationRecord = simulationData;
+            }
+
             if (!data || data.length === 0) {
               throw new Error('Nenhuma linha foi atualizada no Supabase');
             }
@@ -646,6 +658,87 @@ export class LocalSimulationService {
       }
 
       console.log('✅ Contato processado com sucesso');
+
+      try {
+        console.log('🪝 Enviando dados para webhook...');
+
+        const baseSimulation = latestSimulationRecord || simulationData;
+        const resolvedCidade = input.cidade?.trim() || baseSimulation?.cidade || 'Não informado';
+        const resolvedValorEmprestimo = baseSimulation?.valor_emprestimo
+          ?? input.valorDesejadoEmprestimo
+          ?? 0;
+        const resolvedValorImovel = baseSimulation?.valor_imovel
+          ?? input.valorImovelGarantia
+          ?? 0;
+        const resolvedParcelas = baseSimulation?.parcelas
+          ?? input.quantidadeParcelas
+          ?? 0;
+        const baseTipo = baseSimulation?.tipo_amortizacao
+          ?? input.tipoAmortizacao
+          ?? 'PRICE';
+        const tipoAmortizacao = baseTipo.toUpperCase();
+        const primeiraParcela = baseSimulation?.parcela_inicial
+          ?? input.valorParcelaCalculada
+          ?? undefined;
+        const ultimaParcela = baseSimulation?.parcela_final
+          ?? input.valorParcelaCalculada
+          ?? undefined;
+        const valorParcela = tipoAmortizacao === 'SAC'
+          ? (primeiraParcela ?? ultimaParcela ?? 0)
+          : (ultimaParcela ?? primeiraParcela ?? 0);
+
+        const webhookPayload = {
+          simulationId: input.simulationId,
+          sessionId: input.sessionId,
+          nomeCompleto: input.nomeCompleto,
+          email: input.email,
+          telefone: input.telefone,
+          cidade: resolvedCidade,
+          imovelProprio: input.imovelProprio,
+          observacoes: input.observacoes,
+          valorEmprestimo: resolvedValorEmprestimo,
+          valorImovel: resolvedValorImovel,
+          parcelas: resolvedParcelas,
+          tipoAmortizacao,
+          valorParcela,
+          primeiraParcela: primeiraParcela ?? undefined,
+          ultimaParcela: ultimaParcela ?? undefined,
+          status: baseSimulation?.status ?? 'interessado',
+          userAgent: baseSimulation?.user_agent ?? undefined,
+          ipAddress: baseSimulation?.ip_address ?? undefined
+        };
+
+        const webhookCalls = [
+          WebhookService.sendSimulationData(webhookPayload)
+        ];
+
+        const secondaryUrl = process.env.VITE_WEBHOOK_SECONDARY_URL;
+        if (secondaryUrl) {
+          webhookCalls.push(
+            WebhookService.sendSimulationData(webhookPayload, { url: secondaryUrl })
+          );
+        }
+
+        const results = await Promise.all(webhookCalls);
+        const primaryResult = results[0];
+        const secondaryResult = results[1];
+
+        if (primaryResult?.success) {
+          console.log('✅ Webhook enviado com sucesso');
+        } else {
+          console.warn('⚠️ Falha no webhook (não crítico):', primaryResult?.message);
+        }
+
+        if (secondaryUrl) {
+          if (secondaryResult?.success) {
+            console.log('✅ Webhook secundário enviado com sucesso');
+          } else {
+            console.warn('⚠️ Falha no webhook secundário (não crítico):', secondaryResult?.message);
+          }
+        }
+      } catch (webhookError) {
+        console.error('❌ Erro no webhook (não crítico):', webhookError);
+      }
 
       // Após sucesso, tentar reenviar contatos pendentes (exceto quando já é uma tentativa)
       if (!options.isRetry) {

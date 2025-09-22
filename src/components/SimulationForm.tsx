@@ -45,6 +45,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { validateForm } from '@/utils/validations';
 import { LocalSimulationService, SimulationResult } from '@/services/localSimulationService';
+import {
+  SIMULATION_PLACEHOLDER_EMAIL,
+  SIMULATION_PLACEHOLDER_NAME,
+  SIMULATION_PLACEHOLDER_PHONE
+} from '@/constants/simulationPlaceholders';
 import { useUserJourney } from '@/hooks/useUserJourney';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CityAutocomplete from './form/CityAutocomplete';
@@ -155,9 +160,9 @@ const SimulationForm: React.FC = () => {
       const simulationInput = {
         sessionId,
         visitorId,
-        nomeCompleto: 'Lead Anônimo', // Temporário até preenchimento do contato
-        email: 'nao-informado@temp.com',
-        telefone: '(00) 00000-0000',
+        nomeCompleto: SIMULATION_PLACEHOLDER_NAME, // Temporário até preenchimento do contato
+        email: SIMULATION_PLACEHOLDER_EMAIL,
+        telefone: SIMULATION_PLACEHOLDER_PHONE,
         cidade: cidade,
         valorEmprestimo: validation.emprestimoValue,
         valorImovel: validation.garantiaValue,
@@ -273,9 +278,9 @@ const SimulationForm: React.FC = () => {
         const simulationInput = {
           sessionId,
           visitorId,
-          nomeCompleto: 'Lead Anônimo',
-          email: 'nao-informado@temp.com',
-          telefone: '(00) 00000-0000',
+          nomeCompleto: SIMULATION_PLACEHOLDER_NAME,
+          email: SIMULATION_PLACEHOLDER_EMAIL,
+          telefone: SIMULATION_PLACEHOLDER_PHONE,
           cidade: cidade,
           valorEmprestimo: newValidation.emprestimoValue,
           valorImovel: newValidation.garantiaValue,
@@ -370,9 +375,9 @@ const SimulationForm: React.FC = () => {
         const simulationInput = {
           sessionId,
           visitorId,
-          nomeCompleto: 'Lead Anônimo',
-          email: 'nao-informado@temp.com',
-          telefone: '(00) 00000-0000',
+          nomeCompleto: SIMULATION_PLACEHOLDER_NAME,
+          email: SIMULATION_PLACEHOLDER_EMAIL,
+          telefone: SIMULATION_PLACEHOLDER_PHONE,
           cidade: cidade,
           valorEmprestimo: validation.emprestimoValue,
           valorImovel: validation.garantiaValue,

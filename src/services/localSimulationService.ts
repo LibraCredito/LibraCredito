@@ -16,6 +16,11 @@
 
 import { validateEmail, validatePhone } from '@/utils/validations';
 import {
+  SIMULATION_PLACEHOLDER_EMAIL,
+  SIMULATION_PLACEHOLDER_NAME,
+  SIMULATION_PLACEHOLDER_PHONE
+} from '@/constants/simulationPlaceholders';
+import {
   supabaseApi,
   SimulacaoData,
   supabase,
@@ -208,12 +213,24 @@ export class LocalSimulationService {
       // 7. Salvar no Supabase apenas se temos dados reais (não salvar placeholders)
       try {
         // Só salvar no Supabase se temos dados de contato reais
-        const hasRealContactData = input.nomeCompleto && 
-                                  input.nomeCompleto !== '' && 
-                                  input.email && 
-                                  input.email !== '' &&
-                                  input.telefone && 
-                                  input.telefone !== '';
+        const normalizedName = (input.nomeCompleto || '').trim();
+        const normalizedEmail = (input.email || '').trim().toLowerCase();
+        const normalizedPhone = (input.telefone || '').trim();
+        const sanitizedPhone = normalizedPhone.replace(/\D/g, '');
+
+        const placeholderName = SIMULATION_PLACEHOLDER_NAME.toLowerCase();
+        const placeholderEmail = SIMULATION_PLACEHOLDER_EMAIL.toLowerCase();
+        const placeholderPhone = SIMULATION_PLACEHOLDER_PHONE.replace(/\D/g, '');
+
+        const hasRealContactData =
+          normalizedName !== '' &&
+          normalizedName.toLowerCase() !== placeholderName &&
+          normalizedEmail !== '' &&
+          normalizedEmail !== placeholderEmail &&
+          validateEmail(normalizedEmail) &&
+          sanitizedPhone !== '' &&
+          sanitizedPhone !== placeholderPhone &&
+          validatePhone(normalizedPhone);
 
         if (hasRealContactData) {
           const supabaseData: Omit<
@@ -268,10 +285,17 @@ export class LocalSimulationService {
             console.warn('⚠️ Supabase não retornou ID, mantendo ID local:', result.id);
           }
         } else {
-          console.log('📝 Simulação não salva no Supabase (dados de contato ausentes):', {
-            nomeCompleto: !!input.nomeCompleto,
-            email: !!input.email, 
-            telefone: !!input.telefone,
+          const isPlaceholderName = normalizedName.toLowerCase() === placeholderName;
+          const isPlaceholderEmail = normalizedEmail === placeholderEmail;
+          const isPlaceholderPhone = sanitizedPhone === placeholderPhone;
+
+          console.log('📝 Simulação não salva no Supabase (dados ausentes ou placeholders):', {
+            nomeCompleto: normalizedName,
+            email: normalizedEmail,
+            telefone: normalizedPhone,
+            isPlaceholderName,
+            isPlaceholderEmail,
+            isPlaceholderPhone,
             session_id: input.sessionId,
             local_id: simulationId
           });

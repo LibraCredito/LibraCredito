@@ -1,8 +1,49 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  SIMULATION_PLACEHOLDER_EMAIL,
+  SIMULATION_PLACEHOLDER_NAME,
+  SIMULATION_PLACEHOLDER_PHONE
+} from '@/constants/simulationPlaceholders';
 
 // Mock supabase module before importing the service
 const supabaseMock = { from: vi.fn() } as any;
-vi.mock('@/lib/supabase', () => ({ supabase: supabaseMock, supabaseApi: {} }));
+const supabaseApiMock = {
+  createUserJourneySimulacao: vi.fn(),
+  updateSimulacaoStatus: vi.fn(),
+  getSimulacoes: vi.fn(),
+  getUserJourneysByVisitorIds: vi.fn(),
+  getUserJourneysBySessionIds: vi.fn()
+};
+vi.mock('@/lib/supabase', () => ({ supabase: supabaseMock, supabaseApi: supabaseApiMock }));
+
+const validateCityMock = vi.fn(async (city: string) => ({
+  found: true,
+  status: 'success' as const,
+  allowCalculation: true,
+  city,
+  ltv: 50,
+  message: 'OK'
+}));
+const validateLtvMock = vi.fn(async () => ({ valid: true, message: 'OK' }));
+vi.mock('@/utils/cityLtvService', () => ({
+  validateCity: validateCityMock,
+  validateLTV: validateLtvMock
+}));
+
+const validateLoanParametersMock = vi.fn(() => ({ valid: true }));
+const getInterestRateMock = vi.fn(() => 0.01);
+const calculateLoanMock = vi.fn(() => ({
+  parcelaSac: { inicial: 1500, final: 800 },
+  parcelaPrice: 1200,
+  valorTotal: { sac: 0, price: 0 },
+  jurosTotal: { sac: 0, price: 0 },
+  taxaJurosEfetiva: 0.01
+}));
+vi.mock('@/utils/loanCalculator', () => ({
+  validateLoanParameters: validateLoanParametersMock,
+  getInterestRate: getInterestRateMock,
+  calculateLoan: calculateLoanMock
+}));
 
 // Simple in-memory localStorage mock
 class LocalStorageMock {
@@ -15,7 +56,18 @@ class LocalStorageMock {
 
 describe('LocalSimulationService', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     supabaseMock.from.mockReset();
+    supabaseApiMock.createUserJourneySimulacao.mockReset();
+    supabaseApiMock.updateSimulacaoStatus.mockReset();
+    supabaseApiMock.getSimulacoes.mockReset();
+    supabaseApiMock.getUserJourneysByVisitorIds.mockReset();
+    supabaseApiMock.getUserJourneysBySessionIds.mockReset();
+    validateCityMock.mockClear();
+    validateLtvMock.mockClear();
+    validateLoanParametersMock.mockClear();
+    getInterestRateMock.mockClear();
+    calculateLoanMock.mockClear();
     (global as any).localStorage = new LocalStorageMock();
     (global as any).fetch = vi.fn(async () => ({
       ok: true,
@@ -30,6 +82,59 @@ describe('LocalSimulationService', () => {
   afterEach(() => {
     delete (global as any).fetch;
     vi.unstubAllEnvs();
+  });
+
+  it('não cria registros no Supabase quando dados de contato são placeholders', async () => {
+    const { LocalSimulationService } = await import('../localSimulationService');
+
+    const result = await LocalSimulationService.performSimulation({
+      sessionId: 'session-placeholder',
+      visitorId: 'visitor-placeholder',
+      nomeCompleto: SIMULATION_PLACEHOLDER_NAME,
+      email: SIMULATION_PLACEHOLDER_EMAIL,
+      telefone: SIMULATION_PLACEHOLDER_PHONE,
+      cidade: 'São Paulo - SP',
+      valorEmprestimo: 200000,
+      valorImovel: 500000,
+      parcelas: 120,
+      tipoAmortizacao: 'PRICE',
+      userAgent: 'jest',
+      ipAddress: '127.0.0.1',
+      isRuralProperty: false
+    });
+
+    expect(result).toBeDefined();
+    expect(supabaseApiMock.createUserJourneySimulacao).not.toHaveBeenCalled();
+  });
+
+  it('salva simulação no Supabase quando dados válidos são fornecidos', async () => {
+    supabaseApiMock.createUserJourneySimulacao.mockResolvedValue({ id: 'supabase-123' });
+
+    const { LocalSimulationService } = await import('../localSimulationService');
+
+    const result = await LocalSimulationService.performSimulation({
+      sessionId: 'session-valid',
+      visitorId: 'visitor-valid',
+      nomeCompleto: 'Maria Silva',
+      email: 'maria@example.com',
+      telefone: '11987654321',
+      cidade: 'Rio de Janeiro - RJ',
+      valorEmprestimo: 250000,
+      valorImovel: 600000,
+      parcelas: 180,
+      tipoAmortizacao: 'SAC',
+      userAgent: 'jest',
+      ipAddress: '127.0.0.1',
+      isRuralProperty: false
+    });
+
+    expect(supabaseApiMock.createUserJourneySimulacao).toHaveBeenCalledTimes(1);
+    expect(supabaseApiMock.createUserJourneySimulacao).toHaveBeenCalledWith(expect.objectContaining({
+      nome_completo: 'Maria Silva',
+      email: 'maria@example.com',
+      telefone: '11987654321'
+    }));
+    expect(result.id).toBe('supabase-123');
   });
 
   it('salva contato local e envia alerta quando atualização no Supabase falha', async () => {

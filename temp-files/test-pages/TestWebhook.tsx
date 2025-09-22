@@ -9,11 +9,13 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getPrimaryWebhookUrl } from '@/lib/env';
 import { WebhookService, WebhookResult } from '@/services/webhookService';
 import MobileLayout from '@/components/MobileLayout';
 
 const TestWebhook: React.FC = () => {
-  const [webhookUrl, setWebhookUrl] = useState(process.env.VITE_WEBHOOK_URL || '');
+  const defaultWebhookUrl = getPrimaryWebhookUrl() || '';
+  const [webhookUrl, setWebhookUrl] = useState(defaultWebhookUrl);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WebhookResult | null>(null);
   const [customData, setCustomData] = useState({
@@ -109,8 +111,8 @@ const TestWebhook: React.FC = () => {
                 className="w-full"
               />
               <p className="text-sm text-gray-500">
-                {process.env.VITE_WEBHOOK_URL ? 
-                  `URL padrão: ${process.env.VITE_WEBHOOK_URL}` : 
+                {defaultWebhookUrl ?
+                  `URL padrão: ${defaultWebhookUrl}` :
                   'Nenhuma URL configurada no .env'
                 }
               </p>

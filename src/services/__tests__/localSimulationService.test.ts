@@ -24,11 +24,12 @@ describe('LocalSimulationService', () => {
       statusText: 'OK',
       headers: { entries: () => [] }
     }));
-    process.env.VITE_ALERT_WEBHOOK_URL = 'https://alert.test';
+    vi.stubEnv('VITE_ALERT_WEBHOOK_URL', 'https://alert.test');
   });
 
   afterEach(() => {
     delete (global as any).fetch;
+    vi.unstubAllEnvs();
   });
 
   it('salva contato local e envia alerta quando atualização no Supabase falha', async () => {

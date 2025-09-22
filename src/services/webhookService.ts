@@ -1,16 +1,16 @@
 /**
  * Serviço de Webhook para envio de dados de simulação
- * 
+ *
  * @service webhookService
  * @description Serviço responsável por enviar dados da simulação finalizada para webhooks externos
- * 
+ *
  * @features
  * - Envio de dados completos da simulação
  * - Retry automático em caso de falha
  * - Logging detalhado
  * - Validação de payload
  * - Configuração flexível de URLs
- * 
+ *
  * @workflow
  * 1. Recebe dados da simulação completa
  * 2. Valida e formata os dados
@@ -18,6 +18,8 @@
  * 4. Implementa retry em caso de falha
  * 5. Registra resultado
  */
+
+import { resolveWebhookUrl, type WebhookUrl } from '@/lib/env';
 
 export interface WebhookPayload {
   // Dados da simulação
@@ -54,7 +56,7 @@ export interface WebhookPayload {
 }
 
 export interface WebhookConfig {
-  url: string;
+  url: WebhookUrl;
   timeout?: number;
   retries?: number;
   headers?: Record<string, string>;
@@ -82,7 +84,7 @@ export class WebhookService {
   ): Promise<WebhookResult> {
     
     // Obter URL do webhook das variáveis de ambiente
-    const webhookUrl = config?.url || process.env.VITE_WEBHOOK_URL;
+    const webhookUrl = resolveWebhookUrl(config?.url);
     
     if (!webhookUrl) {
       console.warn('⚠️ URL do webhook não configurada');
@@ -172,7 +174,7 @@ export class WebhookService {
    * Fazer requisição HTTP para o webhook
    */
   private static async makeWebhookRequest(
-    url: string,
+    url: WebhookUrl,
     payload: WebhookPayload,
     config?: WebhookConfig,
     attempt: number = 1
@@ -249,8 +251,8 @@ export class WebhookService {
   /**
    * Testar conectividade do webhook
    */
-  static async testWebhook(url?: string): Promise<WebhookResult> {
-    const testUrl = url || process.env.VITE_WEBHOOK_URL;
+  static async testWebhook(url?: WebhookUrl): Promise<WebhookResult> {
+    const testUrl = resolveWebhookUrl(url);
     
     if (!testUrl) {
       return {

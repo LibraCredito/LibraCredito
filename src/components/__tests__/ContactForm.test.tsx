@@ -34,15 +34,6 @@ beforeEach(() => {
 });
 
 describe('ContactForm', () => {
-  const simulationResult = {
-    id: 'sim1',
-    valor: 1000,
-    amortizacao: 'PRICE',
-    parcelas: 12,
-    valorEmprestimo: 50000,
-    valorImovel: 100000,
-    cidade: 'São Paulo'
-  } as any;
 
   it('forwards journey UTM params to LocalSimulationService.processContact', async () => {
     mockGetJourneyData.mockReturnValue({
@@ -54,6 +45,17 @@ describe('ContactForm', () => {
       landing_page: 'https://example.com',
       referrer: 'https://referrer.com'
     });
+
+    const simulationResult = {
+      id: 'local_sim1',
+      userJourneyId: 'supabase-123',
+      valor: 1000,
+      amortizacao: 'PRICE',
+      parcelas: 12,
+      valorEmprestimo: 50000,
+      valorImovel: 100000,
+      cidade: 'São Paulo'
+    } as any;
 
     render(<ContactForm simulationResult={simulationResult} />);
 
@@ -68,6 +70,7 @@ describe('ContactForm', () => {
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
         expect.objectContaining({
+          userJourneyId: 'supabase-123',
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'camp',
@@ -83,6 +86,16 @@ describe('ContactForm', () => {
 
   it('handles missing journey data and submits with null UTM fields', async () => {
     mockGetJourneyData.mockReturnValue(undefined);
+
+    const simulationResult = {
+      id: 'local_sim2',
+      valor: 1000,
+      amortizacao: 'PRICE',
+      parcelas: 12,
+      valorEmprestimo: 50000,
+      valorImovel: 100000,
+      cidade: 'São Paulo'
+    } as any;
 
     render(<ContactForm simulationResult={simulationResult} />);
 

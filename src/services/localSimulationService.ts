@@ -43,6 +43,7 @@ export interface SimulationInput {
 
 export interface SimulationResult {
   id: string;
+  userJourneyId?: string;
   valor: number;
   amortizacao: string;
   parcelas: number;
@@ -57,6 +58,7 @@ export interface SimulationResult {
 
 export interface ContactFormInput {
   simulationId: string;
+  userJourneyId?: string;
   sessionId: string;
   visitorId?: string;
 
@@ -257,16 +259,15 @@ export class LocalSimulationService {
             local_id: simulationId,
             result: supabaseResult
           });
-          
-          // Usar ID do Supabase se disponível
+
           if (supabaseResult?.id) {
-            console.log('🔄 Substituindo ID local pelo ID do Supabase:', {
-              antes: result.id,
-              depois: supabaseResult.id
+            console.log('🆔 ID do Supabase associado à simulação local:', {
+              local_id: result.id,
+              supabase_id: supabaseResult.id
             });
-            result.id = supabaseResult.id;
+            result.userJourneyId = supabaseResult.id;
           } else {
-            console.warn('⚠️ Supabase não retornou ID, mantendo ID local:', result.id);
+            console.warn('⚠️ Supabase não retornou ID, mantendo apenas ID local:', result.id);
           }
         } else {
           console.log('📝 Simulação não salva no Supabase (dados de contato ausentes):', {
@@ -327,24 +328,35 @@ export class LocalSimulationService {
 
       // Obter dados da simulação do Supabase
       let simulationData = null;
+      const simulationIdIsLocal = input.simulationId?.startsWith('local_');
+      const supabaseSimulationId =
+        input.userJourneyId && !input.userJourneyId.startsWith('local_')
+          ? input.userJourneyId
+          : simulationIdIsLocal
+            ? null
+            : input.simulationId;
+
       try {
         if (input.simulationId) {
-          // Verificar se é um ID local (que não existe no Supabase)
-          const isLocalId = input.simulationId.startsWith('local_');
-          
-          if (isLocalId) {
+          if (supabaseSimulationId) {
+            console.log('🔍 Buscando simulação no Supabase pelo ID informado:', supabaseSimulationId);
+            const { data } = await supabase
+              .from('simulacoes')
+              .select('*')
+              .eq('id', supabaseSimulationId)
+              .single();
+            simulationData = data;
+          } else if (simulationIdIsLocal) {
             console.log('🏠 ID local detectado, buscando por session_id:', input.sessionId);
-            // Para IDs locais, buscar pela session_id mais recente
             const { data: results, error: searchError } = await supabase
               .from('simulacoes')
               .select('*')
               .eq('session_id', input.sessionId)
               .order('created_at', { ascending: false })
               .limit(1);
-              
-            // Pegar o primeiro resultado se existir
+
             const data = results && results.length > 0 ? results[0] : null;
-            
+
             if (searchError) {
               console.warn('⚠️ Erro ao buscar por session_id:', searchError);
               console.log('📋 Tentando buscar todas as simulações para debug...');
@@ -357,14 +369,6 @@ export class LocalSimulationService {
             } else if (!data) {
               console.warn('⚠️ Nenhuma simulação encontrada com session_id:', input.sessionId);
             }
-            simulationData = data;
-          } else {
-            // Para IDs do Supabase, buscar normalmente
-            const { data } = await supabase
-              .from('simulacoes')
-              .select('*')
-              .eq('id', input.simulationId)
-              .single();
             simulationData = data;
           }
           console.log('📊 Dados da simulação obtidos:', simulationData);
@@ -486,13 +490,34 @@ export class LocalSimulationService {
             });
 
             // Usar a mesma lógica de busca para atualização/criação
-            const isLocalId = input.simulationId.startsWith('local_');
+            const isLocalId = Boolean(simulationIdIsLocal);
             let existingData = null;
             let updateResult = null;
 
-            if (isLocalId) {
+            if (supabaseSimulationId) {
+              console.log('🆔 Atualizando simulação no Supabase pelo ID informado:', supabaseSimulationId);
+              const { data: searchData, error: selectError } = await supabase
+                .from('simulacoes')
+                .select('id, nome_completo, email, telefone, imovel_proprio, status, visitor_id')
+                .eq('id', supabaseSimulationId)
+                .single();
+
+              if (selectError) {
+                console.error('❌ Erro ao buscar simulação por ID:', selectError);
+                throw new Error(`Simulação não encontrada: ${selectError.message}`);
+              }
+
+              existingData = searchData;
+
+              const { data, error } = await supabase
+                .from('simulacoes')
+                .update(updateData)
+                .eq('id', supabaseSimulationId)
+                .select();
+
+              updateResult = { data, error };
+            } else if (isLocalId) {
               console.log('🏠 Verificando se existe simulação por session_id:', input.sessionId);
-              // Para IDs locais, buscar pela session_id mais recente
               const { data: searchResults, error: selectError } = await supabase
                 .from('simulacoes')
                 .select('id, nome_completo, email, telefone, imovel_proprio, status, session_id, visitor_id, created_at')
@@ -500,7 +525,6 @@ export class LocalSimulationService {
                 .order('created_at', { ascending: false })
                 .limit(1);
 
-              // Pegar o primeiro resultado se existir
               const searchData = searchResults && searchResults.length > 0 ? searchResults[0] : null;
 
               if (selectError) {
@@ -509,10 +533,8 @@ export class LocalSimulationService {
               }
 
               if (!searchData) {
-                // Não existe no Supabase, criar novo registro
                 console.log('➕ Simulação não existe no Supabase, criando nova...');
 
-                // Buscar dados da simulação do localStorage
                 const localSimulations = JSON.parse(
                   localStorage.getItem('libra_local_simulations') || '[]'
                 );
@@ -524,7 +546,6 @@ export class LocalSimulationService {
                   throw new Error('Dados da simulação não encontrados no localStorage');
                 }
 
-                // Criar registro completo no Supabase
                 const createData = {
                   session_id: input.sessionId,
                   visitor_id: input.visitorId || null,
@@ -554,7 +575,6 @@ export class LocalSimulationService {
                 updateResult = { data, error };
                 console.log('✅ Nova simulação criada:', { data, error });
               } else {
-                // Existe no Supabase, atualizar
                 existingData = searchData;
                 console.log('✅ Simulação encontrada para atualização:', {
                   id: existingData.id,
@@ -563,7 +583,6 @@ export class LocalSimulationService {
                   novo_nome: updateData.nome_completo
                 });
 
-                // Atualizar usando o ID real do Supabase
                 const { data, error } = await supabase
                   .from('simulacoes')
                   .update(updateData)
@@ -574,7 +593,6 @@ export class LocalSimulationService {
                 updateResult = { data, error };
               }
             } else {
-              // Para IDs do Supabase, buscar e atualizar normalmente
               const { data: searchData, error: selectError } = await supabase
                 .from('simulacoes')
                 .select('id, nome_completo, email, telefone, imovel_proprio, status, visitor_id')

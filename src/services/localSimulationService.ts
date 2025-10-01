@@ -44,6 +44,13 @@ export interface SimulationInput {
   userAgent?: string;
   ipAddress?: string;
   isRuralProperty?: boolean;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  utmTerm?: string | null;
+  utmContent?: string | null;
+  landingPage?: string | null;
+  referrer?: string | null;
 }
 
 export interface SimulationResult {
@@ -258,6 +265,28 @@ export class LocalSimulationService {
             ip_address: input.ipAddress || '',
             status: 'novo' // Status inicial para compatibilidade com AdminDashboard
           };
+
+          if (input.utmSource !== undefined) {
+            supabaseData.utm_source = input.utmSource;
+          }
+          if (input.utmMedium !== undefined) {
+            supabaseData.utm_medium = input.utmMedium;
+          }
+          if (input.utmCampaign !== undefined) {
+            supabaseData.utm_campaign = input.utmCampaign;
+          }
+          if (input.utmTerm !== undefined) {
+            supabaseData.utm_term = input.utmTerm;
+          }
+          if (input.utmContent !== undefined) {
+            supabaseData.utm_content = input.utmContent;
+          }
+          if (input.referrer !== undefined) {
+            supabaseData.referrer = input.referrer;
+          }
+          if (input.landingPage !== undefined && input.landingPage !== null) {
+            supabaseData.landing_page = input.landingPage;
+          }
 
           console.log('💾 Tentando salvar simulação no Supabase:', {
             session_id: supabaseData.session_id,

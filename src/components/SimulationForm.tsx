@@ -66,7 +66,7 @@ import { formatBRL, norm } from '@/utils/formatters';
 import { toast } from '@/components/ui/use-toast';
 
 const SimulationForm: React.FC = () => {
-  const { sessionId, visitorId, trackSimulation } = useUserJourney();
+  const { sessionId, visitorId, trackSimulation, getJourneyData } = useUserJourney();
   const isMobile = useIsMobile();
   const loanAmountRef = useRef<HTMLInputElement>(null);
   const [emprestimo, setEmprestimo] = useState('');
@@ -156,6 +156,12 @@ const SimulationForm: React.FC = () => {
     setResultado(null);
 
     try {
+      const journey = getJourneyData?.();
+      const fallbackLandingPage =
+        typeof window !== 'undefined' ? window.location.href : undefined;
+      const fallbackReferrer =
+        typeof document !== 'undefined' ? document.referrer || null : undefined;
+
       // Preparar dados para o serviço (sem dados pessoais ainda)
       const simulationInput = {
         sessionId,
@@ -170,7 +176,14 @@ const SimulationForm: React.FC = () => {
         tipoAmortizacao: amortizacao,
         userAgent: navigator.userAgent,
         ipAddress: undefined,
-        isRuralProperty
+        isRuralProperty,
+        utmSource: journey ? journey.utm_source ?? null : undefined,
+        utmMedium: journey ? journey.utm_medium ?? null : undefined,
+        utmCampaign: journey ? journey.utm_campaign ?? null : undefined,
+        utmTerm: journey ? journey.utm_term ?? null : undefined,
+        utmContent: journey ? journey.utm_content ?? null : undefined,
+        landingPage: journey?.landing_page ?? fallbackLandingPage,
+        referrer: journey ? journey.referrer ?? null : fallbackReferrer
       };
 
 

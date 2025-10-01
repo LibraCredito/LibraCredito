@@ -134,7 +134,48 @@ describe('LocalSimulationService', () => {
       email: 'maria@example.com',
       telefone: '11987654321'
     }));
-    expect(result.id).toBe('supabase-123');
+    expect(result.userJourneyId).toBe('supabase-123');
+  });
+
+  it('inclui dados de origem ao salvar simulação quando disponíveis', async () => {
+    supabaseApiMock.createUserJourneySimulacao.mockResolvedValue({ id: 'supabase-456' });
+
+    const { LocalSimulationService } = await import('../localSimulationService');
+
+    await LocalSimulationService.performSimulation({
+      sessionId: 'session-origin',
+      visitorId: 'visitor-origin',
+      nomeCompleto: 'Ana Souza',
+      email: 'ana@example.com',
+      telefone: '11912345678',
+      cidade: 'Curitiba - PR',
+      valorEmprestimo: 300000,
+      valorImovel: 800000,
+      parcelas: 180,
+      tipoAmortizacao: 'PRICE',
+      userAgent: 'jest',
+      ipAddress: '127.0.0.1',
+      isRuralProperty: false,
+      utmSource: 'google',
+      utmMedium: 'cpc',
+      utmCampaign: 'home-equity',
+      utmTerm: 'simulacao',
+      utmContent: 'banner',
+      landingPage: 'https://libra.com.br/landing',
+      referrer: 'https://google.com'
+    });
+
+    expect(supabaseApiMock.createUserJourneySimulacao).toHaveBeenCalledWith(
+      expect.objectContaining({
+        utm_source: 'google',
+        utm_medium: 'cpc',
+        utm_campaign: 'home-equity',
+        utm_term: 'simulacao',
+        utm_content: 'banner',
+        landing_page: 'https://libra.com.br/landing',
+        referrer: 'https://google.com'
+      })
+    );
   });
 
   it('salva contato local e envia alerta quando atualização no Supabase falha', async () => {

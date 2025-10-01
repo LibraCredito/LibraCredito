@@ -29,6 +29,7 @@ import { WebhookService } from '@/services/webhookService';
 // Tipos para o serviço
 export interface SimulationInput {
   sessionId: string;
+  visitorId?: string;
   nomeCompleto: string;
   email: string;
   telefone: string;
@@ -39,6 +40,13 @@ export interface SimulationInput {
   tipoAmortizacao: string;
   userAgent?: string;
   ipAddress?: string;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  utmTerm?: string | null;
+  utmContent?: string | null;
+  landingPage?: string | null;
+  referrer?: string | null;
 }
 
 export interface SimulationResult {
@@ -108,6 +116,7 @@ export class SimulationService {
         'id' | 'created_at' | 'updated_at'
       > = {
         session_id: input.sessionId,
+        visitor_id: input.visitorId,
         nome_completo: input.nomeCompleto,
         email: input.email,
         telefone: this.formatPhoneNumber(input.telefone),
@@ -123,6 +132,28 @@ export class SimulationService {
         user_agent: input.userAgent,
         status: 'novo'
       };
+
+      if (input.utmSource !== undefined) {
+        supabaseData.utm_source = input.utmSource;
+      }
+      if (input.utmMedium !== undefined) {
+        supabaseData.utm_medium = input.utmMedium;
+      }
+      if (input.utmCampaign !== undefined) {
+        supabaseData.utm_campaign = input.utmCampaign;
+      }
+      if (input.utmTerm !== undefined) {
+        supabaseData.utm_term = input.utmTerm;
+      }
+      if (input.utmContent !== undefined) {
+        supabaseData.utm_content = input.utmContent;
+      }
+      if (input.referrer !== undefined) {
+        supabaseData.referrer = input.referrer;
+      }
+      if (input.landingPage !== undefined && input.landingPage !== null) {
+        supabaseData.landing_page = input.landingPage;
+      }
       
       console.log('💾 Salvando no Supabase:', supabaseData);
       

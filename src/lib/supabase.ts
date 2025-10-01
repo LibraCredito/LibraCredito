@@ -98,14 +98,14 @@ export interface DeviceInfo {
 export interface UserJourneySimulacaoData {
   id?: string;
   session_id: string;
-  visitor_id?: string;
+  visitor_id?: string | null;
   utm_source?: string | null;
   utm_medium?: string | null;
   utm_campaign?: string | null;
   utm_term?: string | null;
   utm_content?: string | null;
   referrer?: string | null;
-  landing_page?: string;
+  landing_page?: string | null;
   pages_visited?: PageVisit[];
   time_on_site?: number;
   device_info?: DeviceInfo;

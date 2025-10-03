@@ -1,15 +1,10 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import { Button } from '@/components/ui/button';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import WaveSeparator from '@/components/ui/WaveSeparator';
 
 const Confirmacao = () => {
-  const location = useLocation();
-  const { summary, whatsappLink: stateWhatsappLink } =
-    (location.state as { summary?: unknown; whatsappLink?: string }) || {};
-  void summary;
-  const whatsappLink = stateWhatsappLink || 'https://wa.me/5516997338791';
   useEffect(() => {
     // Runs once on mount to update page metadata
     document.title = 'Simulação Enviada | Libra Crédito';
@@ -49,15 +44,10 @@ const Confirmacao = () => {
           Fique atento ao telefone (16) 36007956 para nosso contato.
         </p>
         <p className="text-base text-gray-700">
-          Quer acelerar seu processo? Fale com nossa Atendente Virtual
+          Enquanto isso, aproveite para conhecer mais sobre a Libra e nossas soluções clicando
+          no botão abaixo.
         </p>
-
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <Button asChild variant="whatsapp">
-            <Link to={whatsappLink} target="_blank" rel="noopener noreferrer">
-              Falar com a Atendente
-            </Link>
-          </Button>
           <Button asChild variant="default" className="px-6">
             <Link to="/quem-somos">Conheça a Libra</Link>
           </Button>

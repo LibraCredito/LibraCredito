@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrollToTop from '@/components/ScrollToTop';
 import { MobileProvider } from '@/hooks/useMobileContext';
+import LazyGlobalTracker from '@/components/LazyGlobalTracker';
 
 // Lazy load TooltipProvider para LCP
 const TooltipProvider = lazy(() => import('@/components/ui/tooltip').then(m => ({ default: m.TooltipProvider })));
@@ -86,6 +87,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <MobileProvider>
         <BrowserRouter>
+          <LazyGlobalTracker />
           <ScrollToTop />
           <Suspense fallback={<Loading />}>
             <Routes>

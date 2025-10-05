@@ -380,7 +380,7 @@ export class LocalSimulationService {
       }
 
       // Obter dados da simulação do Supabase
-      let simulationData = null;
+      let simulationData: SimulacaoData | null = null;
       const simulationIdIsLocal = input.simulationId?.startsWith('local_');
       const supabaseSimulationId =
         input.userJourneyId && !input.userJourneyId.startsWith('local_')
@@ -398,7 +398,7 @@ export class LocalSimulationService {
               .select('*')
               .eq('id', supabaseSimulationId)
               .single();
-            simulationData = data;
+            simulationData = (data as SimulacaoData) || null;
           } else if (simulationIdIsLocal) {
             console.log('🏠 ID local detectado, buscando por session_id:', input.sessionId);
             const { data: results, error: searchError } = await supabase
@@ -408,7 +408,7 @@ export class LocalSimulationService {
               .order('created_at', { ascending: false })
               .limit(1);
 
-            const data = results && results.length > 0 ? results[0] : null;
+            const data = results && results.length > 0 ? (results[0] as SimulacaoData) : null;
 
             if (searchError) {
               console.warn('⚠️ Erro ao buscar por session_id:', searchError);
@@ -504,6 +504,8 @@ export class LocalSimulationService {
       // Salvar/Atualizar contato no Supabase com dados completos (com retry)
       const maxSupabaseRetries = 3;
       let lastSupabaseError: unknown = null;
+      let updatedSimulationRecord: SimulacaoData | null = null;
+      let journeyStatus: string | null = null;
       for (let attempt = 1; attempt <= maxSupabaseRetries; attempt++) {
         try {
           if (input.simulationId) {
@@ -516,6 +518,8 @@ export class LocalSimulationService {
               status: 'interessado', // Status após contato para compatibilidade com AdminDashboard
               visitor_id: input.visitorId
             };
+
+            journeyStatus = updateData.status || null;
 
             // Validar dados antes da atualização
             if (!updateData.nome_completo) {
@@ -544,7 +548,7 @@ export class LocalSimulationService {
 
             // Usar a mesma lógica de busca para atualização/criação
             const isLocalId = Boolean(simulationIdIsLocal);
-            let existingData = null;
+            let existingData: SimulacaoData | null = null;
             let updateResult = null;
 
             if (supabaseSimulationId) {
@@ -674,6 +678,12 @@ export class LocalSimulationService {
 
             const { data, error } = updateResult;
 
+            if (data && data.length > 0) {
+              updatedSimulationRecord = (data[0] as SimulacaoData) || null;
+            } else if (!updatedSimulationRecord && existingData) {
+              updatedSimulationRecord = existingData;
+            }
+
             if (error) {
               console.error('❌ Erro ao atualizar Supabase:', {
                 error,
@@ -715,6 +725,118 @@ export class LocalSimulationService {
 
       if (lastSupabaseError) {
         throw lastSupabaseError;
+      }
+
+      const fallbackSimulation = updatedSimulationRecord || simulationData;
+      try {
+        const resolveNumber = (
+          formValue: number | null | undefined,
+          ...fallbacks: Array<number | null | undefined>
+        ): number | undefined => {
+          if (formValue !== null && formValue !== undefined) {
+            const parsed = Number(formValue);
+            return Number.isFinite(parsed) ? parsed : undefined;
+          }
+
+          for (const fallback of fallbacks) {
+            if (fallback !== null && fallback !== undefined) {
+              const parsed = Number(fallback);
+              if (Number.isFinite(parsed)) {
+                return parsed;
+              }
+            }
+          }
+
+          return undefined;
+        };
+
+        const getNormalizedString = (
+          ...values: Array<string | null | undefined>
+        ): string | undefined => {
+          for (const value of values) {
+            if (typeof value === 'string') {
+              const trimmed = value.trim();
+              if (trimmed && trimmed.toLowerCase() !== 'não informado') {
+                return trimmed;
+              }
+            }
+          }
+          return undefined;
+        };
+
+        const normalizedNome = input.nomeCompleto.trim();
+        const normalizedEmail = input.email.trim().toLowerCase();
+        const normalizedTelefone = input.telefone.replace(/\D/g, '');
+        const normalizedCidade = getNormalizedString(
+          input.cidade,
+          fallbackSimulation?.cidade,
+          ploomesPayload.cidade
+        );
+
+        const valorEmprestimoNumber = resolveNumber(
+          input.valorDesejadoEmprestimo,
+          fallbackSimulation?.valor_emprestimo,
+          simulationData?.valor_emprestimo
+        );
+        const valorImovelNumber = resolveNumber(
+          input.valorImovelGarantia,
+          fallbackSimulation?.valor_imovel,
+          simulationData?.valor_imovel
+        );
+        const parcelasNumber = resolveNumber(
+          input.quantidadeParcelas,
+          fallbackSimulation?.parcelas,
+          simulationData?.parcelas
+        );
+        const parcelaInicialNumber = resolveNumber(
+          input.valorParcelaCalculada,
+          fallbackSimulation?.parcela_inicial,
+          simulationData?.parcela_inicial
+        );
+        const parcelaFinalNumber = resolveNumber(
+          input.valorParcelaCalculada,
+          fallbackSimulation?.parcela_final,
+          fallbackSimulation?.parcela_inicial,
+          simulationData?.parcela_final
+        );
+        const tipoAmortizacaoValue = getNormalizedString(
+          input.tipoAmortizacao?.toUpperCase(),
+          fallbackSimulation?.tipo_amortizacao,
+          simulationData?.tipo_amortizacao
+        );
+
+        const journeyUpdatePayload: Partial<UserJourneySimulacaoData> = {
+          nome_completo: normalizedNome,
+          email: normalizedEmail,
+          telefone: normalizedTelefone,
+          cidade: normalizedCidade,
+          valor_emprestimo: valorEmprestimoNumber,
+          valor_imovel: valorImovelNumber,
+          parcelas: parcelasNumber,
+          tipo_amortizacao: tipoAmortizacaoValue,
+          parcela_inicial: parcelaInicialNumber,
+          parcela_final: parcelaFinalNumber,
+          status: journeyStatus || fallbackSimulation?.status || 'interessado',
+          utm_source: getNormalizedString(input.utm_source),
+          utm_medium: getNormalizedString(input.utm_medium),
+          utm_campaign: getNormalizedString(input.utm_campaign),
+          utm_term: getNormalizedString(input.utm_term),
+          utm_content: getNormalizedString(input.utm_content),
+          landing_page: getNormalizedString(input.landing_page),
+          referrer: getNormalizedString(input.referrer)
+        };
+
+        const sanitizedJourneyUpdatePayload = Object.fromEntries(
+          Object.entries(journeyUpdatePayload).filter(([, value]) => value !== undefined)
+        ) as Partial<UserJourneySimulacaoData>;
+
+        if (Object.keys(sanitizedJourneyUpdatePayload).length > 0) {
+          console.log('🔁 Atualizando jornada do usuário com dados do contato:', sanitizedJourneyUpdatePayload);
+          await supabaseApi.updateUserJourney(input.sessionId, sanitizedJourneyUpdatePayload);
+          console.log('✅ Jornada atualizada no Supabase');
+        }
+      } catch (journeyUpdateError) {
+        console.error('⚠️ Erro ao atualizar user journey:', journeyUpdateError);
       }
 
       console.log('✅ Contato processado com sucesso');

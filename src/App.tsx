@@ -87,6 +87,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <MobileProvider>
         <BrowserRouter>
+          <LazyGlobalTracker />
           <ScrollToTop />
           {typeof window !== 'undefined' && <LazyGlobalTracker />}
           <Suspense fallback={<Loading />}>

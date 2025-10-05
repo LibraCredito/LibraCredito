@@ -7,6 +7,7 @@ import { MobileProvider } from '@/hooks/useMobileContext';
 import { Toaster } from '@/components/ui/toast';
 import { Analytics } from '@vercel/analytics/react';
 import type { BlogPost as BlogPostType } from '@/data/blogPosts';
+import LazyGlobalTracker from '@/components/LazyGlobalTracker';
 
 const TooltipProvider = lazy(() => import('@/components/ui/tooltip').then(m => ({ default: m.TooltipProvider })));
 
@@ -64,6 +65,7 @@ const AppServer: React.FC<AppServerProps> = ({ url, initialData = {} }) => {
     <QueryClientProvider client={queryClient}>
       <MobileProvider>
         <StaticRouter location={url}>
+          {typeof window !== 'undefined' && <LazyGlobalTracker />}
           <ScrollToTop />
           <Suspense fallback={<Loading />}>
             <Routes>

@@ -16,40 +16,42 @@ import { formatPhone, validatePhone } from '@/utils/validations';
 interface SanitizedPhoneResult {
   sanitized: string;
   ddiRemoved: boolean;
-  addedNine: boolean;
+  trimmedToEightDigits: boolean;
 }
 
 const sanitizePhoneInput = (value: string): SanitizedPhoneResult => {
   let digitsOnly = value.replace(/\D/g, '');
   let ddiRemoved = false;
-  let addedNine = false;
+  let trimmedToEightDigits = false;
 
-  if (digitsOnly.length > 11 && digitsOnly.startsWith('55')) {
+  if (!digitsOnly) {
+    return { sanitized: '', ddiRemoved, trimmedToEightDigits };
+  }
+
+  digitsOnly = digitsOnly.replace(/^0+/, '');
+
+  if (digitsOnly.startsWith('55') && digitsOnly.length > 11) {
     digitsOnly = digitsOnly.slice(2);
     ddiRemoved = true;
+    digitsOnly = digitsOnly.replace(/^0+/, '');
   }
 
-  if (digitsOnly.length > 11) {
-    digitsOnly = digitsOnly.slice(0, 11);
+  if (digitsOnly.length <= 2) {
+    return { sanitized: digitsOnly, ddiRemoved, trimmedToEightDigits };
   }
 
-  if (digitsOnly.length > 2) {
-    const ddd = digitsOnly.slice(0, 2);
-    const subscriber = digitsOnly.slice(2);
-    if (subscriber.length === 8) {
-      digitsOnly = `${ddd}9${subscriber}`;
-      addedNine = true;
-    }
-  }
+  const ddd = digitsOnly.slice(0, 2);
+  let subscriber = digitsOnly.slice(2);
 
-  if (digitsOnly.length > 11) {
-    digitsOnly = digitsOnly.slice(0, 11);
+  if (subscriber.length > 8) {
+    subscriber = subscriber.slice(-8);
+    trimmedToEightDigits = true;
   }
 
   return {
-    sanitized: digitsOnly,
+    sanitized: `${ddd}${subscriber}`,
     ddiRemoved,
-    addedNine
+    trimmedToEightDigits
   };
 };
 
@@ -94,7 +96,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const [telefoneSanitizado, setTelefoneSanitizado] = useState('');
   const [phoneSanitizationWarnings, setPhoneSanitizationWarnings] = useState({
     extraDDI: false,
-    missingNine: false
+    trimmedSubscriber: false
   });
   const [imovelProprio, setImovelProprio] = useState<'proprio' | 'terceiro' | ''>('');
   const [aceitePrivacidade, setAceitePrivacidade] = useState(false);
@@ -122,12 +124,12 @@ const ContactForm: React.FC<ContactFormProps> = ({
   }, [formComplete]);
 
   const handlePhoneChange = (value: string) => {
-    const { sanitized, ddiRemoved, addedNine } = sanitizePhoneInput(value);
+    const { sanitized, ddiRemoved, trimmedToEightDigits } = sanitizePhoneInput(value);
     setTelefoneSanitizado(sanitized);
     setTelefone(sanitized ? formatPhone(sanitized) : '');
     setPhoneSanitizationWarnings({
       extraDDI: ddiRemoved,
-      missingNine: addedNine
+      trimmedSubscriber: trimmedToEightDigits
     });
   };
 
@@ -247,7 +249,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
       setEmail('');
       setTelefone('');
       setTelefoneSanitizado('');
-      setPhoneSanitizationWarnings({ extraDDI: false, missingNine: false });
+      setPhoneSanitizationWarnings({ extraDDI: false, trimmedSubscriber: false });
       setImovelProprio('');
       setAceitePrivacidade(false);
       
@@ -342,13 +344,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
             required
             aria-required="true"
           />
-          {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.missingNine) && (
+          {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.trimmedSubscriber) && (
             <div className="mt-1 text-xs text-yellow-100">
               {phoneSanitizationWarnings.extraDDI && (
-                <p>Removemos o DDI internacional +55 do número informado.</p>
+                <p>Removemos o DDI internacional (por exemplo, +55) do número informado.</p>
               )}
-              {phoneSanitizationWarnings.missingNine && (
-                <p>Adicionamos o dígito 9 obrigatório após o DDD.</p>
+              {phoneSanitizationWarnings.trimmedSubscriber && (
+                <p>Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.</p>
               )}
             </div>
           )}
@@ -544,13 +546,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
                   required
                   aria-required="true"
                 />
-                {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.missingNine) && (
+                {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.trimmedSubscriber) && (
                   <div className="mt-1 text-xs text-yellow-700">
                     {phoneSanitizationWarnings.extraDDI && (
-                      <p>Removemos o DDI internacional +55 do número informado.</p>
+                      <p>Removemos o DDI internacional (por exemplo, +55) do número informado.</p>
                     )}
-                    {phoneSanitizationWarnings.missingNine && (
-                      <p>Adicionamos o dígito 9 obrigatório após o DDD.</p>
+                    {phoneSanitizationWarnings.trimmedSubscriber && (
+                      <p>Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.</p>
                     )}
                   </div>
                 )}

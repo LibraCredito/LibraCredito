@@ -8,7 +8,7 @@
  * Reduz ~116KB do bundle inicial
  */
 
-import type { Database } from './supabase';
+import type { Database, GetSimulacoesOptions } from './supabase';
 
 // Cache do cliente para evitar múltiplas inicializações
 let supabaseClient: any = null;
@@ -108,13 +108,43 @@ async function loadSupabaseClient() {
           return result;
         },
 
-        async getSimulacoes(limit = 1000) {
-          const { data, error } = await client
+        async getSimulacoes(options: GetSimulacoesOptions = {}) {
+          const {
+            limit = 1000,
+            page = 1,
+            status,
+            searchTerm
+          } = options;
+
+          const from = Math.max(0, (page - 1) * limit);
+          const to = from + limit - 1;
+
+          let query = client
             .from('simulacoes')
-            .select('*')
+            .select(
+              'id,nome_completo,email,status,created_at,valor_emprestimo,valor_imovel,parcelas,session_id,visitor_id'
+            )
+            .not('nome_completo', 'is', null)
+            .neq('nome_completo', '')
+            .not('email', 'is', null)
+            .neq('email', '')
+            .neq('status', 'novo')
             .order('created_at', { ascending: false })
-            .limit(limit);
-          
+            .range(from, to);
+
+          if (status) {
+            query = query.eq('status', status);
+          }
+
+          if (searchTerm) {
+            const sanitizedTerm = `%${searchTerm.trim()}%`;
+            query = query.or(
+              `nome_completo.ilike.${sanitizedTerm},email.ilike.${sanitizedTerm}`
+            );
+          }
+
+          const { data, error } = await query;
+
           if (error) throw error;
           return data;
         },

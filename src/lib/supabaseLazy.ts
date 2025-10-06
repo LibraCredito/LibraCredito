@@ -210,12 +210,14 @@ async function loadSupabaseClient() {
         },
 
         // Blog Posts - lazy loaded
-        async getAllBlogPosts() {
+        async getBlogPostSummaries() {
           const { data, error } = await client
             .from('blog_posts')
-            .select('*')
+            .select(
+              'id,title,description,category,image_url,slug,read_time,published,featured_post,created_at'
+            )
             .order('created_at', { ascending: false });
-          
+
           if (error) throw error;
           return data || [];
         },

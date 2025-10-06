@@ -28,7 +28,7 @@ const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
       }
 
       try {
-        const foundPost = await BlogService.getPostBySlug(slug);
+        const foundPost = await BlogService.getPostWithContent(slug);
         if (foundPost) {
           setPost(foundPost);
         }
@@ -39,7 +39,7 @@ const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
       }
     };
 
-    if (!initialPost) {
+    if (!initialPost || !initialPost.content) {
       loadPost();
     } else {
       setLoading(false);

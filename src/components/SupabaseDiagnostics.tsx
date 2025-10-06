@@ -47,7 +47,7 @@ const SupabaseDiagnostics: React.FC = () => {
       // 2. Teste da tabela blog_posts
       setSyncStatus('Verificando tabela blog_posts...');
       try {
-        const posts = await supabaseApi.getAllBlogPosts();
+        const posts = await supabaseApi.getBlogPostSummaries();
         addResult({
           test: 'Tabela blog_posts',
           status: 'success',

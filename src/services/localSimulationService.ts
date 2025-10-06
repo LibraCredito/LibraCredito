@@ -101,6 +101,8 @@ export interface SessionGroupWithJourney {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  journey_status?: string | null;
+  primary_session_id?: string | null;
 }
 
 // Classe principal do serviço local
@@ -245,12 +247,11 @@ export class LocalSimulationService {
 
         if (hasRealContactData) {
           const supabaseData: Omit<
-            UserJourneySimulacaoData,
+            SimulacaoData,
             'id' | 'created_at' | 'updated_at'
           > = {
             session_id: input.sessionId,
             visitor_id: input.visitorId || null,
-
             nome_completo: input.nomeCompleto,
             email: input.email,
             telefone: input.telefone,
@@ -262,32 +263,10 @@ export class LocalSimulationService {
             parcela_inicial: calculation.parcelaSac.inicial,
             parcela_final: calculation.parcelaSac.final,
             imovel_proprio: 'proprio',
-            user_agent: input.userAgent || '',
-            ip_address: input.ipAddress || '',
-            status: 'novo' // Status inicial para compatibilidade com AdminDashboard
+            user_agent: input.userAgent || null,
+            ip_address: input.ipAddress || null,
+            status: 'novo'
           };
-
-          if (input.utmSource !== undefined) {
-            supabaseData.utm_source = input.utmSource;
-          }
-          if (input.utmMedium !== undefined) {
-            supabaseData.utm_medium = input.utmMedium;
-          }
-          if (input.utmCampaign !== undefined) {
-            supabaseData.utm_campaign = input.utmCampaign;
-          }
-          if (input.utmTerm !== undefined) {
-            supabaseData.utm_term = input.utmTerm;
-          }
-          if (input.utmContent !== undefined) {
-            supabaseData.utm_content = input.utmContent;
-          }
-          if (input.referrer !== undefined) {
-            supabaseData.referrer = input.referrer;
-          }
-          if (input.landingPage !== undefined && input.landingPage !== null) {
-            supabaseData.landing_page = input.landingPage;
-          }
 
           console.log('💾 Tentando salvar simulação no Supabase:', {
             session_id: supabaseData.session_id,
@@ -297,9 +276,7 @@ export class LocalSimulationService {
             original_local_id: simulationId
           });
 
-          const supabaseResult = await supabaseApi.createUserJourneySimulacao(
-            supabaseData
-          );
+          const supabaseResult = await supabaseApi.createSimulacao(supabaseData);
           console.log('✅ Simulação salva no Supabase:', {
             success: !!supabaseResult?.id,
             supabase_id: supabaseResult?.id,
@@ -315,6 +292,57 @@ export class LocalSimulationService {
             result.userJourneyId = supabaseResult.id;
           } else {
             console.warn('⚠️ Supabase não retornou ID, mantendo apenas ID local:', result.id);
+          }
+
+          const journeyUpdate: Partial<UserJourneyData> = {
+            visitor_id: input.visitorId || null,
+            nome_completo: input.nomeCompleto,
+            email: input.email,
+            telefone: input.telefone,
+            cidade: input.cidade,
+            valor_emprestimo: input.valorEmprestimo,
+            valor_imovel: input.valorImovel,
+            parcelas: input.parcelas,
+            tipo_amortizacao: input.tipoAmortizacao,
+            parcela_inicial: calculation.parcelaSac.inicial,
+            parcela_final: calculation.parcelaSac.final,
+            imovel_proprio: 'proprio',
+            status: 'novo'
+          };
+
+          if (input.utmSource !== undefined) {
+            journeyUpdate.utm_source = input.utmSource;
+          }
+          if (input.utmMedium !== undefined) {
+            journeyUpdate.utm_medium = input.utmMedium;
+          }
+          if (input.utmCampaign !== undefined) {
+            journeyUpdate.utm_campaign = input.utmCampaign;
+          }
+          if (input.utmTerm !== undefined) {
+            journeyUpdate.utm_term = input.utmTerm;
+          }
+          if (input.utmContent !== undefined) {
+            journeyUpdate.utm_content = input.utmContent;
+          }
+          if (input.referrer !== undefined) {
+            journeyUpdate.referrer = input.referrer;
+          }
+          if (input.landingPage !== undefined && input.landingPage !== null) {
+            journeyUpdate.landing_page = input.landingPage;
+          }
+
+          const sanitizedJourneyUpdate = Object.fromEntries(
+            Object.entries(journeyUpdate).filter(([, value]) => value !== undefined)
+          ) as Partial<UserJourneyData>;
+
+          if (Object.keys(sanitizedJourneyUpdate).length > 0) {
+            try {
+              await supabaseApi.updateUserJourney(input.sessionId, sanitizedJourneyUpdate);
+              console.log('🔁 Jornada do usuário atualizada com dados da simulação local');
+            } catch (journeyError) {
+              console.error('⚠️ Erro ao atualizar user journey:', journeyError);
+            }
           }
         } else {
           const isPlaceholderName = normalizedName.toLowerCase() === placeholderName;
@@ -380,6 +408,8 @@ export class LocalSimulationService {
         throw new Error('Telefone inválido');
       }
 
+      const sanitizedPhone = input.telefone.replace(/\D/g, '');
+
       // Obter dados da simulação do Supabase
       let simulationData: SimulacaoData | null = null;
       const simulationIdIsLocal = input.simulationId?.startsWith('local_');
@@ -441,7 +471,7 @@ export class LocalSimulationService {
         valorParcelaCalculada: Number(input.valorParcelaCalculada || simulationData?.parcela_inicial || 0),
         nomeCompleto: input.nomeCompleto.trim(),
         email: input.email.trim().toLowerCase(),
-        telefone: input.telefone.replace(/\D/g, ''), // Remove all non-digits
+        telefone: sanitizedPhone,
         imovelProprio: input.imovelProprio === 'proprio' ? 'Imóvel próprio' : 'Imóvel de terceiro',
         aceitaPolitica: Boolean(input.aceitaPolitica),
         utm_source: input.utm_source || null,
@@ -514,7 +544,7 @@ export class LocalSimulationService {
             const updateData = {
               nome_completo: input.nomeCompleto.trim(),
               email: input.email.trim().toLowerCase(),
-              telefone: input.telefone.replace(/\D/g, ''), // Limpar telefone
+              telefone: sanitizedPhone, // Limpar telefone
               imovel_proprio: input.imovelProprio as 'proprio' | 'terceiro', // Garantir tipo correto
               status: 'interessado', // Status após contato para compatibilidade com AdminDashboard
               visitor_id: input.visitorId
@@ -848,7 +878,7 @@ export class LocalSimulationService {
           existingJourney?.referrer
         );
 
-        const journeyUpdatePayload: Partial<UserJourneySimulacaoData> = {
+        const journeyUpdatePayload: Partial<UserJourneyData> = {
           nome_completo: normalizedNome,
           email: normalizedEmail,
           telefone: normalizedTelefone,
@@ -871,7 +901,7 @@ export class LocalSimulationService {
 
         const sanitizedJourneyUpdatePayload = Object.fromEntries(
           Object.entries(journeyUpdatePayload).filter(([, value]) => value !== undefined)
-        ) as Partial<UserJourneySimulacaoData>;
+        ) as Partial<UserJourneyData>;
 
         if (!existingJourney) {
           const resolvedVisitorId =
@@ -985,37 +1015,54 @@ export class LocalSimulationService {
    */
   static async getSimulacoes(limit = 1000) {
     try {
-      return await supabaseApi.getSimulacoes(limit);
+      return await supabaseApi.getSimulacoes({ limit });
     } catch (error) {
       console.error('❌ Erro ao buscar simulações:', error);
       throw error;
     }
   }
 
-  static async getSimulacoesAgrupadas(limit = 1000): Promise<SessionGroupWithJourney[]> {
+  static async getSimulacoesAgrupadas(
+    options: {
+      limit?: number;
+      page?: number;
+      status?: string;
+      searchTerm?: string;
+    } = {}
+  ): Promise<SessionGroupWithJourney[]> {
     try {
-      const simulacoes = await supabaseApi.getSimulacoes(limit);
+      const { limit = 1000, page = 1, status, searchTerm } = options;
+      const simulacoes = await supabaseApi.getSimulacoes({
+        limit,
+        page,
+        status,
+        searchTerm
+      });
+
+      if (!simulacoes?.length) {
+        return [];
+      }
 
       const grouped = new Map<string, SimulacaoData[]>();
-      const visitorIds = new Set<string>();
       const sessionIds = new Set<string>();
+      const visitorOnlyIds = new Set<string>();
 
       for (const sim of simulacoes) {
         const key = sim.visitor_id || sim.session_id;
         if (!key) continue;
-        const arr = grouped.get(key) || [];
-        arr.push(sim);
-        grouped.set(key, arr);
 
-        if (sim.visitor_id) {
-          visitorIds.add(sim.visitor_id);
-        } else if (sim.session_id) {
+        const existing = grouped.get(key) || [];
+        existing.push(sim);
+        grouped.set(key, existing);
+
+        if (sim.session_id) {
           sessionIds.add(sim.session_id);
-
+        } else if (sim.visitor_id) {
+          visitorOnlyIds.add(sim.visitor_id);
         }
       }
 
-      let journeys: any[] = [];
+      let journeys: UserJourneyData[] = [];
       if (visitorIds.size > 0) {
         journeys = journeys.concat(
           await this.fetchJourneysInChunks(
@@ -1025,24 +1072,46 @@ export class LocalSimulationService {
         );
       }
       if (sessionIds.size > 0) {
-        journeys = journeys.concat(
-          await this.fetchJourneysInChunks(
-            Array.from(sessionIds),
-            ids => supabaseApi.getUserJourneysBySessionIds(ids)
-          )
+        const journeysBySession = await this.fetchJourneysInChunks(
+          Array.from(sessionIds),
+          ids => supabaseApi.getUserJourneysBySessionIds(ids)
         );
+
+        for (const journey of journeysBySession) {
+          if (!journey) continue;
+
+          if (journey.session_id) {
+            journeyMap.set(journey.session_id, journey);
+          }
+          if (journey.visitor_id) {
+            journeyMap.set(journey.visitor_id, journey);
+            visitorOnlyIds.delete(journey.visitor_id);
+          }
+        }
       }
 
-      const journeyMap = new Map<string, any>();
+      const journeyMap = new Map<string, UserJourneyData>();
       for (const j of journeys) {
         const key = j?.visitor_id || j?.session_id;
         if (key) journeyMap.set(key, j);
       }
 
       const result: SessionGroupWithJourney[] = [];
+
       for (const [key, sims] of grouped.entries()) {
-        sims.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
-        const journey = journeyMap.get(key);
+        sims.sort(
+          (a, b) =>
+            new Date(b.created_at || '').getTime() -
+            new Date(a.created_at || '').getTime()
+        );
+
+        const primarySim = sims[0];
+        const journeyKey =
+          (primarySim.session_id && journeyMap.has(primarySim.session_id)
+            ? primarySim.session_id
+            : primarySim.visitor_id) || key;
+        const journey = journeyMap.get(journeyKey) || null;
+
         result.push({
           visitor_id: key,
           simulacoes: sims,
@@ -1054,6 +1123,8 @@ export class LocalSimulationService {
           utm_content: journey?.utm_content ?? null,
           landing_page: journey?.landing_page ?? null,
           referrer: journey?.referrer ?? null,
+          journey_status: journey?.status ?? null,
+          primary_session_id: primarySim.session_id ?? null
         });
       }
 

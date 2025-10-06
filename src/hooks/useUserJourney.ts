@@ -22,7 +22,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import type {
-  UserJourneySimulacaoData,
+  UserJourneyData,
   PageVisit,
   DeviceInfo
 } from '@/lib/supabase';
@@ -56,7 +56,7 @@ interface UserJourneyHook {
   isTracking: boolean;
   trackPageVisit: (url?: string) => void;
   trackSimulation: (simulationData: unknown) => void;
-  getJourneyData: () => UserJourneySimulacaoData | null;
+  getJourneyData: () => UserJourneyData | null;
   updateTimeOnSite: () => void;
 }
 
@@ -147,7 +147,7 @@ export function useUserJourney(): UserJourneyHook {
   const [visitorId, setVisitorId] = useState<string>('');
   const [isTracking, setIsTracking] = useState(false);
   const [journeyData, setJourneyData] =
-    useState<UserJourneySimulacaoData | null>(null);
+    useState<UserJourneyData | null>(null);
   const pageStartTime = useRef<number>(Date.now());
   const sessionStartTime = useRef<number>(Date.now());
   const ipFetchedRef = useRef<boolean>(false);
@@ -159,7 +159,8 @@ export function useUserJourney(): UserJourneyHook {
     try {
       const ip = await getUserIP();
       const api = await getSupabaseApi();
-      await api.updateUserJourney(sessionId, { ip_address: ip });
+          const payload: Partial<UserJourneyData> = { ip_address: ip };
+          await api.updateUserJourney(sessionId, payload);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.warn('Failed to update IP address:', error);
@@ -250,7 +251,7 @@ export function useUserJourney(): UserJourneyHook {
           const utms = extractUTMParams();
           const deviceInfo = getDeviceInfo();
 
-          const newJourney: UserJourneySimulacaoData = {
+          const newJourney: UserJourneyData = {
             session_id: sessionId,
             visitor_id: visitorId,
             utm_source: utms.utm_source || null,
@@ -261,13 +262,17 @@ export function useUserJourney(): UserJourneyHook {
             referrer: document.referrer || 'direct',
             landing_page: window.location.href,
             pages_visited: [],
+            time_on_site: 0,
             device_info: deviceInfo,
             ip_address: null
           };
 
-          existingJourney = await supabaseApi.createUserJourneySimulacao(
-            newJourney
-          );
+          existingJourney = await supabaseApi.createUserJourney(newJourney);
+
+          existingJourney = {
+            ...newJourney,
+            id: createdJourney?.id || null
+          };
 
           if (process.env.NODE_ENV === 'development') {
             console.log('Nova jornada criada:', existingJourney);
@@ -320,7 +325,7 @@ export function useUserJourney(): UserJourneyHook {
       setTimeout(() => {
         if (isTracking && updatedJourney.pages_visited) {
           // Garantir que os dados são serializáveis
-          const safeData = {
+          const safeData: Partial<UserJourneyData> = {
             pages_visited: updatedJourney.pages_visited.map(page => ({
               url: String(page.url),
               timestamp: String(page.timestamp),
@@ -328,7 +333,7 @@ export function useUserJourney(): UserJourneyHook {
             })),
             time_on_site: Number(updatedJourney.time_on_site) || 0
           };
-          
+
           getSupabaseApi()
             .then(api =>
               api.updateUserJourney(sessionId, safeData).catch((error) => {
@@ -375,7 +380,7 @@ export function useUserJourney(): UserJourneyHook {
       // Atualizar no Supabase apenas se tracking estiver ativo
       if (isTracking && updatedJourney.pages_visited) {
         // Garantir que os dados são serializáveis
-        const safeData = {
+        const safeData: Partial<UserJourneyData> = {
           pages_visited: updatedJourney.pages_visited.map(page => ({
             url: String(page.url),
             timestamp: String(page.timestamp),
@@ -410,11 +415,11 @@ export function useUserJourney(): UserJourneyHook {
     const timeOnSite = Math.floor((currentTime - sessionStartTime.current) / 1000);
     
     if (isTracking) {
+      const payload: Partial<UserJourneyData> = { time_on_site: timeOnSite };
+
       getSupabaseApi()
         .then(api =>
-          api.updateUserJourney(sessionId, {
-            time_on_site: timeOnSite
-          }).catch((error) => {
+          api.updateUserJourney(sessionId, payload).catch((error) => {
             if (process.env.NODE_ENV === 'development') {
               console.warn('Failed to update time on site:', error);
             }

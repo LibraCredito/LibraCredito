@@ -11,6 +11,47 @@ import Home from 'lucide-react/dist/esm/icons/home';
 import Building from 'lucide-react/dist/esm/icons/building';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import { cn } from '@/lib/utils';
+import { formatPhone, validatePhone } from '@/utils/validations';
+
+interface SanitizedPhoneResult {
+  sanitized: string;
+  ddiRemoved: boolean;
+  addedNine: boolean;
+}
+
+const sanitizePhoneInput = (value: string): SanitizedPhoneResult => {
+  let digitsOnly = value.replace(/\D/g, '');
+  let ddiRemoved = false;
+  let addedNine = false;
+
+  if (digitsOnly.length > 11 && digitsOnly.startsWith('55')) {
+    digitsOnly = digitsOnly.slice(2);
+    ddiRemoved = true;
+  }
+
+  if (digitsOnly.length > 11) {
+    digitsOnly = digitsOnly.slice(0, 11);
+  }
+
+  if (digitsOnly.length > 2) {
+    const ddd = digitsOnly.slice(0, 2);
+    const subscriber = digitsOnly.slice(2);
+    if (subscriber.length === 8) {
+      digitsOnly = `${ddd}9${subscriber}`;
+      addedNine = true;
+    }
+  }
+
+  if (digitsOnly.length > 11) {
+    digitsOnly = digitsOnly.slice(0, 11);
+  }
+
+  return {
+    sanitized: digitsOnly,
+    ddiRemoved,
+    addedNine
+  };
+};
 
 /**
  * Props for the contact form component.
@@ -50,6 +91,11 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [telefoneSanitizado, setTelefoneSanitizado] = useState('');
+  const [phoneSanitizationWarnings, setPhoneSanitizationWarnings] = useState({
+    extraDDI: false,
+    missingNine: false
+  });
   const [imovelProprio, setImovelProprio] = useState<'proprio' | 'terceiro' | ''>('');
   const [aceitePrivacidade, setAceitePrivacidade] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -58,7 +104,8 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const invalidNome = nome.trim() === '';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const invalidEmail = !emailRegex.test(email.trim());
-  const invalidTelefone = telefone.trim() === '';
+  const sanitizedTelefone = telefoneSanitizado || sanitizePhoneInput(telefone).sanitized;
+  const invalidTelefone = !validatePhone(sanitizedTelefone);
   const invalidImovelProprio = imovelProprio === '';
   const invalidAceite = !aceitePrivacidade;
   const formComplete =
@@ -74,26 +121,14 @@ const ContactForm: React.FC<ContactFormProps> = ({
     }
   }, [formComplete]);
 
-  // Função para aplicar máscara de telefone
-  const formatPhoneNumber = (value: string) => {
-    // Remove tudo que não é número
-    const numbers = value.replace(/\D/g, '');
-    
-    // Aplica a máscara conforme o número de dígitos
-    if (numbers.length <= 2) {
-      return `(${numbers}`;
-    } else if (numbers.length <= 7) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    } else if (numbers.length <= 10) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`;
-    } else {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
-    }
-  };
-
   const handlePhoneChange = (value: string) => {
-    const formatted = formatPhoneNumber(value);
-    setTelefone(formatted);
+    const { sanitized, ddiRemoved, addedNine } = sanitizePhoneInput(value);
+    setTelefoneSanitizado(sanitized);
+    setTelefone(sanitized ? formatPhone(sanitized) : '');
+    setPhoneSanitizationWarnings({
+      extraDDI: ddiRemoved,
+      missingNine: addedNine
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,7 +178,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
         sessionId,
         nome,
         email,
-        telefone,
+        telefone: sanitizedTelefone,
         imovelProprio,
         imovelProprioTexto: imovelProprio === 'proprio' ? 'Imóvel Próprio' : 'Imóvel de Terceiro'
       });
@@ -158,7 +193,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
         ...(simulationResult.userJourneyId ? { userJourneyId: simulationResult.userJourneyId } : {}),
         nomeCompleto: nome,
         email,
-        telefone,
+        telefone: sanitizedTelefone,
         cidade: simulationResult.cidade,
         imovelProprio,
         observacoes: `Simulação: ${simulationResult.amortizacao} - ${simulationResult.parcelas}x - R$ ${simulationResult.valor.toLocaleString('pt-BR')}`,
@@ -211,6 +246,8 @@ const ContactForm: React.FC<ContactFormProps> = ({
       setNome('');
       setEmail('');
       setTelefone('');
+      setTelefoneSanitizado('');
+      setPhoneSanitizationWarnings({ extraDDI: false, missingNine: false });
       setImovelProprio('');
       setAceitePrivacidade(false);
       
@@ -305,6 +342,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
             required
             aria-required="true"
           />
+          {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.missingNine) && (
+            <div className="mt-1 text-xs text-yellow-100">
+              {phoneSanitizationWarnings.extraDDI && (
+                <p>Removemos o DDI internacional +55 do número informado.</p>
+              )}
+              {phoneSanitizationWarnings.missingNine && (
+                <p>Adicionamos o dígito 9 obrigatório após o DDD.</p>
+              )}
+            </div>
+          )}
         </div>
         
         <fieldset className={cn('space-y-2', invalidImovelProprio && 'border border-red-500 rounded-md p-2')}>
@@ -497,6 +544,16 @@ const ContactForm: React.FC<ContactFormProps> = ({
                   required
                   aria-required="true"
                 />
+                {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.missingNine) && (
+                  <div className="mt-1 text-xs text-yellow-700">
+                    {phoneSanitizationWarnings.extraDDI && (
+                      <p>Removemos o DDI internacional +55 do número informado.</p>
+                    )}
+                    {phoneSanitizationWarnings.missingNine && (
+                      <p>Adicionamos o dígito 9 obrigatório após o DDD.</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

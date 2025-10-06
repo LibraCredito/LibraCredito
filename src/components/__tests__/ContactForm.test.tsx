@@ -122,5 +122,106 @@ describe('ContactForm', () => {
       );
     });
   });
+
+  it('sanitizes phone numbers with DDI 55 and informs the user', async () => {
+    mockGetJourneyData.mockReturnValue(undefined);
+
+    const simulationResult = {
+      id: 'local_sim3',
+      valor: 1000,
+      amortizacao: 'PRICE',
+      parcelas: 12,
+      valorEmprestimo: 50000,
+      valorImovel: 100000,
+      cidade: 'São Paulo'
+    } as any;
+
+    render(<ContactForm simulationResult={simulationResult} />);
+
+    fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Maria Silva' } });
+    fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'maria@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: '5511999999999' } });
+
+    expect(screen.getByText('Removemos o DDI internacional +55 do número informado.')).toBeInTheDocument();
+    expect(screen.queryByText('Adicionamos o dígito 9 obrigatório após o DDD.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+
+    await waitFor(() => {
+      expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
+        expect.objectContaining({ telefone: '11999999999' })
+      );
+    });
+  });
+
+  it('adds the missing ninth digit after the DDD and warns the user', async () => {
+    mockGetJourneyData.mockReturnValue(undefined);
+
+    const simulationResult = {
+      id: 'local_sim4',
+      valor: 1000,
+      amortizacao: 'PRICE',
+      parcelas: 12,
+      valorEmprestimo: 50000,
+      valorImovel: 100000,
+      cidade: 'São Paulo'
+    } as any;
+
+    render(<ContactForm simulationResult={simulationResult} />);
+
+    fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Carlos Souza' } });
+    fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'carlos@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: '1188888888' } });
+
+    expect(screen.getByText('Adicionamos o dígito 9 obrigatório após o DDD.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+
+    await waitFor(() => {
+      expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
+        expect.objectContaining({ telefone: '11988888888' })
+      );
+    });
+  });
+
+  it('keeps already valid phone numbers unchanged without warnings', async () => {
+    mockGetJourneyData.mockReturnValue(undefined);
+
+    const simulationResult = {
+      id: 'local_sim5',
+      valor: 1000,
+      amortizacao: 'PRICE',
+      parcelas: 12,
+      valorEmprestimo: 50000,
+      valorImovel: 100000,
+      cidade: 'São Paulo'
+    } as any;
+
+    render(<ContactForm simulationResult={simulationResult} />);
+
+    fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Ana Lima' } });
+    fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'ana@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: '11912345678' } });
+
+    expect(screen.queryByText('Removemos o DDI internacional +55 do número informado.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Adicionamos o dígito 9 obrigatório após o DDD.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+
+    await waitFor(() => {
+      expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
+        expect.objectContaining({ telefone: '11912345678' })
+      );
+    });
+  });
 });
 

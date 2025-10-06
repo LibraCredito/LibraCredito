@@ -34,7 +34,6 @@ import StorageStats from '@/components/StorageStats';
 import SupabaseDiagnostics from '@/components/SupabaseDiagnostics';
 import UTMDetails from '@/components/UTMDetails';
 import { ParceiroData } from '@/lib/supabase';
-import { formatPhone } from '@/utils/validations';
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import Download from 'lucide-react/dist/esm/icons/download';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
@@ -54,6 +53,7 @@ import Save from 'lucide-react/dist/esm/icons/save';
 import LogOut from 'lucide-react/dist/esm/icons/log-out';
 import { formatBRL } from '@/utils/formatters';
 import { renderMarkdown } from '@/utils/markdown';
+import { formatPhone } from '@/utils/validations';
 
 // Garante compatibilidade com scripts antigos que ainda referenciam
 // window.getFilteredSessions antes da montagem do componente. Inicializa
@@ -335,13 +335,16 @@ const AdminDashboard: React.FC = () => {
   const loadSimulacoes = async () => {
     setLoading(true);
     try {
-      const data = await LocalSimulationService.getSimulacoesAgrupadas(1000);
+      const data = await LocalSimulationService.getSimulacoesAgrupadas({
+        limit: 1000,
+        status: filtroStatus !== 'todos' ? filtroStatus : undefined,
+        searchTerm: filtroNome.trim() ? filtroNome : undefined
+      });
       const completed = data.filter(group => {
         const sim = group.simulacoes[0];
         return (
           !!sim.nome_completo?.trim() &&
           !!sim.email?.trim() &&
-          !!sim.telefone?.trim() &&
           sim.status !== 'novo'
         );
       });
@@ -380,7 +383,7 @@ const AdminDashboard: React.FC = () => {
     const filteredData = getFilteredVisitors();
 
     const csv = [
-      'Visitante,Quantidade,Data,Nome,Email,Telefone,Cidade,Valor Emprestimo,Valor Imovel,Parcelas,Sistema,Status',
+      'Grupo,Quantidade,Data,Nome,Email,Valor Emprestimo,Valor Imovel,Parcelas,Status,Sessao,Visitante',
       ...filteredData.map(group => {
         const s = group.simulacoes[0];
         return [
@@ -389,13 +392,12 @@ const AdminDashboard: React.FC = () => {
           s.created_at ? new Date(s.created_at).toLocaleDateString() : '',
           s.nome_completo,
           s.email,
-          s.telefone,
-          s.cidade,
           s.valor_emprestimo,
           s.valor_imovel,
           s.parcelas,
-          s.tipo_amortizacao,
-          s.status
+          s.status,
+          group.primary_session_id || '',
+          s.visitor_id || ''
         ].join(',');
       })
     ].join('\n');
@@ -683,9 +685,7 @@ const AdminDashboard: React.FC = () => {
                       <TableHead>Origem</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Contato</TableHead>
-                      <TableHead>Cidade</TableHead>
-                      <TableHead>Empréstimo</TableHead>
-                      <TableHead>Sistema</TableHead>
+                      <TableHead>Valores</TableHead>
                       <TableHead>Parcelas</TableHead>
                       <TableHead>Simulações</TableHead>
                       <TableHead>Status</TableHead>
@@ -713,9 +713,18 @@ const AdminDashboard: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-sm">
                           <div>{simulacao.email}</div>
-                          <div className="text-gray-500">{formatPhone(simulacao.telefone)}</div>
+                          <div className="text-gray-500 text-xs break-all">
+                            Sessão: {visitor.primary_session_id || 'N/D'}
+                          </div>
+                          <div className="text-gray-500 text-xs break-all">
+                            Grupo: {visitor.visitor_id}
+                          </div>
+                          {visitor.journey_status && (
+                            <div className="text-gray-500 text-xs">
+                              Jornada: {visitor.journey_status}
+                            </div>
+                          )}
                         </TableCell>
-                        <TableCell>{simulacao.cidade}</TableCell>
                         <TableCell className="text-sm">
                           <div className="font-semibold text-green-600">
                             {simulacao.valor_emprestimo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -724,10 +733,7 @@ const AdminDashboard: React.FC = () => {
                             Imóvel: {simulacao.valor_imovel.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{simulacao.tipo_amortizacao}</Badge>
-                        </TableCell>
-                        <TableCell>{simulacao.parcelas}x</TableCell>
+                        <TableCell>{simulacao.parcelas ? `${simulacao.parcelas}x` : '—'}</TableCell>
                         <TableCell>{visitor.total_simulacoes}</TableCell>
                         <TableCell>
                           <Select

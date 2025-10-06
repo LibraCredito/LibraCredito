@@ -25,13 +25,21 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import ContactForm from '../ContactForm';
 import { LocalSimulationService } from '@/services/localSimulationService';
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
+
+const confirmPhoneDialog = async () => {
+  await screen.findByRole('dialog');
+  const confirmButton = await screen.findByRole('button', { name: /confirmar telefone/i });
+  await act(async () => {
+    fireEvent.click(confirmButton);
+  });
+};
 
 describe('ContactForm', () => {
 
@@ -66,6 +74,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -107,6 +116,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -151,6 +161,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -189,6 +200,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -222,6 +234,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -259,6 +272,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -293,6 +307,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(

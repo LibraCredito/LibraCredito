@@ -265,9 +265,14 @@ export function useUserJourney(): UserJourneyHook {
             ip_address: null
           };
 
-          existingJourney = await supabaseApi.createUserJourneySimulacao(
+          const createdJourney = await supabaseApi.createUserJourneySimulacao(
             newJourney
           );
+
+          existingJourney = {
+            ...newJourney,
+            id: createdJourney?.id || null
+          };
 
           if (process.env.NODE_ENV === 'development') {
             console.log('Nova jornada criada:', existingJourney);

@@ -124,11 +124,11 @@ async function loadSupabaseClient() {
             .from('simulacoes')
             .update({ status })
             .eq('id', id)
-            .select()
+            .select('id, status')
             .single();
 
           if (error) throw error;
-          return data;
+          return data ?? { id, status };
         },
 
         // User Journey + Simulação
@@ -138,11 +138,14 @@ async function loadSupabaseClient() {
           const { data: result, error } = await client
             .from('user_journey_simulacoes')
             .upsert(data, { onConflict: 'session_id' })
-            .select()
+            .select('id')
             .single();
 
           if (error) throw error;
-          return result;
+          return {
+            ...data,
+            id: result?.id || null
+          } as UserJourneySimulacaoData;
         },
 
         // Parceiros
@@ -150,11 +153,14 @@ async function loadSupabaseClient() {
           const { data: result, error } = await client
             .from('parceiros')
             .insert(data)
-            .select()
+            .select('id')
             .single();
-          
+
           if (error) throw error;
-          return result;
+          return {
+            ...data,
+            id: result?.id || null
+          } as ParceiroData;
         },
 
         async getParceiros(limit = 50) {
@@ -173,26 +179,23 @@ async function loadSupabaseClient() {
             .from('parceiros')
             .update({ status })
             .eq('id', id)
-            .select()
+            .select('id, status')
             .single();
-          
+
           if (error) throw error;
-          return data;
+          return data ?? { id, status };
         },
 
         async updateUserJourney(
           sessionId: string,
           data: Database['public']['Tables']['user_journey_simulacoes']['Update']
         ) {
-          const { data: result, error } = await client
+          const { error } = await client
             .from('user_journey_simulacoes')
-            .update(data)
-            .eq('session_id', sessionId)
-            .select()
-            .maybeSingle();
+            .update(data, { returning: 'minimal' })
+            .eq('session_id', sessionId);
 
           if (error) throw error;
-          return result;
         },
 
         async getUserJourney(sessionId: string) {

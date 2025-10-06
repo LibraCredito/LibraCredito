@@ -80,21 +80,6 @@ export interface ParceiroData {
 }
 
 
-export interface PageVisit {
-  url: string;
-  timestamp: string;
-  time_spent?: number;
-}
-
-export interface DeviceInfo {
-  user_agent: string;
-  screen_resolution: string;
-  viewport_size: string;
-  device_type: 'mobile' | 'tablet' | 'desktop';
-  browser: string;
-  os: string;
-}
-
 export interface UserJourneySimulacaoData {
   id?: string;
   session_id: string;
@@ -125,6 +110,41 @@ export interface UserJourneySimulacaoData {
   status?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface UserJourneySummary {
+  session_id: string | null;
+  visitor_id?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
+  utm_content?: string | null;
+  landing_page?: string | null;
+  referrer?: string | null;
+  status?: string | null;
+}
+
+export interface PageVisit {
+  url: string;
+  timestamp: string;
+  time_spent?: number;
+}
+
+export interface DeviceInfo {
+  user_agent: string;
+  screen_resolution: string;
+  viewport_size: string;
+  device_type: 'mobile' | 'tablet' | 'desktop';
+  browser: string;
+  os: string;
+}
+
+export interface GetSimulacoesOptions {
+  limit?: number;
+  page?: number;
+  status?: string;
+  searchTerm?: string;
 }
 
 export interface BlogPostData {
@@ -232,20 +252,43 @@ export const supabaseApi = {
     return result;
   },
 
-  async getSimulacoes(limit = 1000) {
-    const { data, error } = await supabase
+  async getSimulacoes(options: GetSimulacoesOptions = {}) {
+    const {
+      limit = 1000,
+      page = 1,
+      status,
+      searchTerm
+    } = options;
+
+    const from = Math.max(0, (page - 1) * limit);
+    const to = from + limit - 1;
+
+    let query = supabase
       .from('simulacoes')
-      .select('*')
+      .select(
+        'id,nome_completo,email,status,created_at,valor_emprestimo,valor_imovel,parcelas,session_id,visitor_id'
+      )
       .not('nome_completo', 'is', null)
       .neq('nome_completo', '')
       .not('email', 'is', null)
       .neq('email', '')
-      .not('telefone', 'is', null)
-      .neq('telefone', '')
       .neq('status', 'novo')
       .order('created_at', { ascending: false })
-      .limit(limit);
-    
+      .range(from, to);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    if (searchTerm) {
+      const sanitizedTerm = `%${searchTerm.trim()}%`;
+      query = query.or(
+        `nome_completo.ilike.${sanitizedTerm},email.ilike.${sanitizedTerm}`
+      );
+    }
+
+    const { data, error } = await query;
+
     if (error) throw error;
     return data;
   },
@@ -348,24 +391,32 @@ export const supabaseApi = {
     return data;
   },
 
-  async getUserJourneysBySessionIds(sessionIds: string[]) {
+  async getUserJourneysBySessionIds(
+    sessionIds: string[]
+  ): Promise<UserJourneySummary[]> {
     const { data, error } = await supabase
       .from('user_journey_simulacoes')
-      .select('*')
+      .select(
+        'session_id,visitor_id,utm_source,utm_medium,utm_campaign,utm_term,utm_content,landing_page,referrer,status'
+      )
       .in('session_id', sessionIds);
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as UserJourneySummary[];
   },
 
-  async getUserJourneysByVisitorIds(visitorIds: string[]) {
+  async getUserJourneysByVisitorIds(
+    visitorIds: string[]
+  ): Promise<UserJourneySummary[]> {
     const { data, error } = await supabase
       .from('user_journey_simulacoes')
-      .select('*')
+      .select(
+        'session_id,visitor_id,utm_source,utm_medium,utm_campaign,utm_term,utm_content,landing_page,referrer,status'
+      )
       .in('visitor_id', visitorIds);
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as UserJourneySummary[];
   },
 
   // Analytics

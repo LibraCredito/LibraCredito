@@ -25,7 +25,8 @@ import {
   supabaseApi,
   SimulacaoData,
   supabase,
-  UserJourneySimulacaoData
+  UserJourneySimulacaoData,
+  UserJourneySummary
 } from '@/lib/supabase';
 
 // Reutilizar interfaces do serviço original
@@ -100,6 +101,8 @@ export interface SessionGroupWithJourney {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  journey_status?: string | null;
+  primary_session_id?: string | null;
 }
 
 // Classe principal do serviço local
@@ -914,64 +917,108 @@ export class LocalSimulationService {
    */
   static async getSimulacoes(limit = 1000) {
     try {
-      return await supabaseApi.getSimulacoes(limit);
+      return await supabaseApi.getSimulacoes({ limit });
     } catch (error) {
       console.error('❌ Erro ao buscar simulações:', error);
       throw error;
     }
   }
 
-  static async getSimulacoesAgrupadas(limit = 1000): Promise<SessionGroupWithJourney[]> {
+  static async getSimulacoesAgrupadas(
+    options: {
+      limit?: number;
+      page?: number;
+      status?: string;
+      searchTerm?: string;
+    } = {}
+  ): Promise<SessionGroupWithJourney[]> {
     try {
-      const simulacoes = await supabaseApi.getSimulacoes(limit);
+      const { limit = 1000, page = 1, status, searchTerm } = options;
+      const simulacoes = await supabaseApi.getSimulacoes({
+        limit,
+        page,
+        status,
+        searchTerm
+      });
+
+      if (!simulacoes?.length) {
+        return [];
+      }
 
       const grouped = new Map<string, SimulacaoData[]>();
-      const visitorIds = new Set<string>();
       const sessionIds = new Set<string>();
+      const visitorOnlyIds = new Set<string>();
 
       for (const sim of simulacoes) {
         const key = sim.visitor_id || sim.session_id;
         if (!key) continue;
-        const arr = grouped.get(key) || [];
-        arr.push(sim);
-        grouped.set(key, arr);
 
-        if (sim.visitor_id) {
-          visitorIds.add(sim.visitor_id);
-        } else if (sim.session_id) {
+        const existing = grouped.get(key) || [];
+        existing.push(sim);
+        grouped.set(key, existing);
+
+        if (sim.session_id) {
           sessionIds.add(sim.session_id);
-
+        } else if (sim.visitor_id) {
+          visitorOnlyIds.add(sim.visitor_id);
         }
       }
 
-      let journeys: any[] = [];
-      if (visitorIds.size > 0) {
-        journeys = journeys.concat(
-          await this.fetchJourneysInChunks(
-            Array.from(visitorIds),
-            ids => supabaseApi.getUserJourneysByVisitorIds(ids)
-          )
-        );
-      }
+      const journeyMap = new Map<string, UserJourneySummary>();
+
       if (sessionIds.size > 0) {
-        journeys = journeys.concat(
-          await this.fetchJourneysInChunks(
-            Array.from(sessionIds),
-            ids => supabaseApi.getUserJourneysBySessionIds(ids)
-          )
+        const journeysBySession = await this.fetchJourneysInChunks(
+          Array.from(sessionIds),
+          ids => supabaseApi.getUserJourneysBySessionIds(ids)
         );
+
+        for (const journey of journeysBySession) {
+          if (!journey) continue;
+
+          if (journey.session_id) {
+            journeyMap.set(journey.session_id, journey);
+          }
+          if (journey.visitor_id) {
+            journeyMap.set(journey.visitor_id, journey);
+            visitorOnlyIds.delete(journey.visitor_id);
+          }
+        }
       }
 
-      const journeyMap = new Map<string, any>();
-      for (const j of journeys) {
-        const key = j?.visitor_id || j?.session_id;
-        if (key) journeyMap.set(key, j);
+      if (visitorOnlyIds.size > 0) {
+        const journeysByVisitor = await this.fetchJourneysInChunks(
+          Array.from(visitorOnlyIds),
+          ids => supabaseApi.getUserJourneysByVisitorIds(ids)
+        );
+
+        for (const journey of journeysByVisitor) {
+          if (!journey) continue;
+
+          if (journey.visitor_id) {
+            journeyMap.set(journey.visitor_id, journey);
+          }
+          if (journey.session_id && !journeyMap.has(journey.session_id)) {
+            journeyMap.set(journey.session_id, journey);
+          }
+        }
       }
 
       const result: SessionGroupWithJourney[] = [];
+
       for (const [key, sims] of grouped.entries()) {
-        sims.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
-        const journey = journeyMap.get(key);
+        sims.sort(
+          (a, b) =>
+            new Date(b.created_at || '').getTime() -
+            new Date(a.created_at || '').getTime()
+        );
+
+        const primarySim = sims[0];
+        const journeyKey =
+          (primarySim.session_id && journeyMap.has(primarySim.session_id)
+            ? primarySim.session_id
+            : primarySim.visitor_id) || key;
+        const journey = journeyMap.get(journeyKey) || null;
+
         result.push({
           visitor_id: key,
           simulacoes: sims,
@@ -983,6 +1030,8 @@ export class LocalSimulationService {
           utm_content: journey?.utm_content ?? null,
           landing_page: journey?.landing_page ?? null,
           referrer: journey?.referrer ?? null,
+          journey_status: journey?.status ?? null,
+          primary_session_id: primarySim.session_id ?? null
         });
       }
 

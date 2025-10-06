@@ -448,7 +448,7 @@ export const supabaseApi = {
     const { data, error } = await supabase
       .from('blog_posts')
       .select(
-        'id,title,description,category,image_url,slug,read_time,published,featured_post,created_at'
+        'id,title,description,category,image_url,slug,read_time,published,featured_post,meta_title,meta_description,created_at,updated_at'
       )
       .order('created_at', { ascending: false });
 
@@ -481,7 +481,9 @@ export const supabaseApi = {
   async getBlogPostBySlug(slug: string) {
     const { data, error } = await supabase
       .from('blog_posts')
-      .select('*')
+      .select(
+        'id,title,description,category,content,image_url,slug,read_time,published,featured_post,meta_title,meta_description,tags,created_at,updated_at'
+      )
       .eq('slug', slug)
       .single();
     

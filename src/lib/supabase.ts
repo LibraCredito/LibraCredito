@@ -129,6 +129,8 @@ export interface UserJourneyData {
   updated_at?: string;
 }
 
+export type UserJourneySimulacaoData = UserJourneyData;
+
 export interface UserJourneySummary {
   session_id: string | null;
   visitor_id?: string | null;
@@ -328,18 +330,18 @@ export const supabaseApi = {
   // User Journey
   async createUserJourney(
     data: Database['public']['Tables']['user_journey']['Insert']
-  ) {
+  ): Promise<UserJourneyData> {
     const { data: result, error } = await supabase
       .from('user_journey')
       .upsert(data, { onConflict: 'session_id' })
-      .select('id')
+      .select()
       .single();
 
     if (error) throw error;
-    return {
+    return (result ?? {
       ...data,
-      id: result?.id || null
-    } as UserJourneySimulacaoData;
+      id: undefined
+    }) as UserJourneyData;
   },
 
   // Parceiros

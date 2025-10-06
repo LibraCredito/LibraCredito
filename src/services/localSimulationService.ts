@@ -910,7 +910,7 @@ export class LocalSimulationService {
             simulationData?.visitor_id ||
             null;
 
-          const journeyCreationPayload: Database['public']['Tables']['user_journey_simulacoes']['Insert'] = {
+          const journeyCreationPayload: Database['public']['Tables']['user_journey']['Insert'] = {
             session_id: input.sessionId,
             visitor_id: resolvedVisitorId,
             utm_source: utmSourceValue ?? null,
@@ -918,14 +918,18 @@ export class LocalSimulationService {
             utm_campaign: utmCampaignValue ?? null,
             utm_term: utmTermValue ?? null,
             utm_content: utmContentValue ?? null,
-            landing_page: landingPageValue ?? null,
+            landing_page:
+              landingPageValue ??
+              fallbackSimulation?.landing_page ??
+              existingJourney?.landing_page ??
+              null,
             referrer: referrerValue ?? null,
             ...sanitizedJourneyUpdatePayload
           };
 
           try {
             console.log('➕ Criando jornada do usuário no Supabase:', journeyCreationPayload);
-            const createdJourney = await supabaseApi.createUserJourneySimulacao(journeyCreationPayload);
+            const createdJourney = await supabaseApi.createUserJourney(journeyCreationPayload);
             existingJourney = createdJourney || null;
             console.log('✅ Jornada criada no Supabase');
           } catch (journeyCreateError) {

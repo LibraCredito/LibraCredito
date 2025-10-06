@@ -379,6 +379,8 @@ export class LocalSimulationService {
         throw new Error('Telefone inválido');
       }
 
+      const sanitizedPhone = input.telefone.replace(/\D/g, '');
+
       // Obter dados da simulação do Supabase
       let simulationData: SimulacaoData | null = null;
       const simulationIdIsLocal = input.simulationId?.startsWith('local_');
@@ -440,7 +442,7 @@ export class LocalSimulationService {
         valorParcelaCalculada: Number(input.valorParcelaCalculada || simulationData?.parcela_inicial || 0),
         nomeCompleto: input.nomeCompleto.trim(),
         email: input.email.trim().toLowerCase(),
-        telefone: input.telefone.replace(/\D/g, ''), // Remove all non-digits
+        telefone: sanitizedPhone,
         imovelProprio: input.imovelProprio === 'proprio' ? 'Imóvel próprio' : 'Imóvel de terceiro',
         aceitaPolitica: Boolean(input.aceitaPolitica),
         utm_source: input.utm_source || null,
@@ -513,7 +515,7 @@ export class LocalSimulationService {
             const updateData = {
               nome_completo: input.nomeCompleto.trim(),
               email: input.email.trim().toLowerCase(),
-              telefone: input.telefone.replace(/\D/g, ''), // Limpar telefone
+              telefone: sanitizedPhone, // Limpar telefone
               imovel_proprio: input.imovelProprio as 'proprio' | 'terceiro', // Garantir tipo correto
               status: 'interessado', // Status após contato para compatibilidade com AdminDashboard
               visitor_id: input.visitorId

@@ -103,6 +103,10 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const sanitizedPhone = useMemo(() => sanitizePhoneInput(telefone), [telefone]);
+  const digitsOnlyPhone = useMemo(
+    () => telefone.replace(/\D/g, '').replace(/^0+/, ''),
+    [telefone]
+  );
   const [phoneConfirmationOpen, setPhoneConfirmationOpen] = useState(false);
   const [imovelProprio, setImovelProprio] = useState<'proprio' | 'terceiro' | ''>('');
   const [aceitePrivacidade, setAceitePrivacidade] = useState(false);
@@ -114,6 +118,14 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const invalidEmail = !emailRegex.test(email.trim());
   const sanitizedTelefone = sanitizedPhone.sanitized;
   const invalidTelefone = !validatePhone(sanitizedTelefone);
+  const requiresPhoneConfirmation = useMemo(
+    () =>
+      Boolean(sanitizedTelefone) &&
+      (sanitizedPhone.ddiRemoved ||
+        sanitizedPhone.trimmedToEightDigits ||
+        digitsOnlyPhone !== sanitizedTelefone),
+    [digitsOnlyPhone, sanitizedPhone.ddiRemoved, sanitizedPhone.trimmedToEightDigits, sanitizedTelefone]
+  );
   const invalidImovelProprio = imovelProprio === '';
   const invalidAceite = !aceitePrivacidade;
   const formComplete =
@@ -278,7 +290,12 @@ const ContactForm: React.FC<ContactFormProps> = ({
       hasSessionId: !!sessionId
     });
 
-    setPhoneConfirmationOpen(true);
+    if (requiresPhoneConfirmation) {
+      setPhoneConfirmationOpen(true);
+      return;
+    }
+
+    await submitContact();
   };
 
   const confirmPhoneAndSubmit = async () => {
@@ -287,6 +304,18 @@ const ContactForm: React.FC<ContactFormProps> = ({
   };
 
   const formattedSanitizedTelefone = sanitizedTelefone ? formatPhone(sanitizedTelefone) : '';
+  const formattedWithInsertedNine = useMemo(() => {
+    if (sanitizedTelefone.length === 10) {
+      const ddd = sanitizedTelefone.slice(0, 2);
+      const subscriber = sanitizedTelefone.slice(2);
+
+      if (subscriber.length === 8) {
+        return `(${ddd}) 9 ${subscriber.slice(0, 4)}-${subscriber.slice(4)}`;
+      }
+    }
+
+    return formattedSanitizedTelefone || sanitizedTelefone;
+  }, [formattedSanitizedTelefone, sanitizedTelefone]);
 
   const phoneConfirmationDialog = (
     <Dialog open={phoneConfirmationOpen} onOpenChange={setPhoneConfirmationOpen}>
@@ -303,10 +332,11 @@ const ContactForm: React.FC<ContactFormProps> = ({
             <p className="mt-1 rounded bg-libra-light/40 px-3 py-2 break-all">{telefone || '—'}</p>
           </div>
           <div>
-            <p className="font-medium">Como iremos enviar ao time da Libra:</p>
+            <p className="font-medium">
+              Como iremos enviar ao time da Libra (com o 9 entre o DDD e os últimos 8 dígitos):
+            </p>
             <p className="mt-1 rounded bg-libra-light px-3 py-2 font-semibold">
-              {formattedSanitizedTelefone || sanitizedTelefone}
-              <span className="block text-xs text-libra-navy/80">{sanitizedTelefone}</span>
+              {formattedWithInsertedNine}
             </p>
           </div>
           {(sanitizedPhone.ddiRemoved || sanitizedPhone.trimmedToEightDigits) && (

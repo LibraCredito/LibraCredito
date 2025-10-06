@@ -235,6 +235,9 @@ describe('ContactForm', () => {
 
     expect(screen.getByText('Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.')).toBeInTheDocument();
 
+    fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Paula Gomes' } });
+    fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'paula@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: inputVariant } });
     fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
     fireEvent.click(screen.getByRole('checkbox'));
 
@@ -322,6 +325,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
+    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(

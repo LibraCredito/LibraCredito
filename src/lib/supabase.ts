@@ -250,42 +250,53 @@ export const supabaseApi = {
     return data;
   },
 
-  async updateSimulacaoStatus(id: string, status: string) {
+  async updateSimulacaoStatus(
+    id: string,
+    status: string
+  ): Promise<Pick<SimulacaoData, 'id' | 'status'>> {
     const { data, error } = await supabase
       .from('simulacoes')
       .update({ status })
       .eq('id', id)
-      .select()
+      .select('id, status')
       .single();
 
     if (error) throw error;
-    return data;
+    return data ?? { id, status };
   },
 
   // User Journey + Simulação
   async createUserJourneySimulacao(
     data: Database['public']['Tables']['user_journey_simulacoes']['Insert']
-  ) {
+  ): Promise<UserJourneySimulacaoData> {
     const { data: result, error } = await supabase
       .from('user_journey_simulacoes')
       .upsert(data, { onConflict: 'session_id' })
-      .select()
+      .select('id')
       .single();
 
     if (error) throw error;
-    return result;
+    return {
+      ...data,
+      id: result?.id || null
+    } as UserJourneySimulacaoData;
   },
 
   // Parceiros
-  async createParceiro(data: Database['public']['Tables']['parceiros']['Insert']) {
+  async createParceiro(
+    data: Database['public']['Tables']['parceiros']['Insert']
+  ): Promise<ParceiroData> {
     const { data: result, error } = await supabase
       .from('parceiros')
       .insert(data)
-      .select()
+      .select('id')
       .single();
-    
+
     if (error) throw error;
-    return result;
+    return {
+      ...data,
+      id: result?.id || null
+    } as ParceiroData;
   },
 
   async getParceiros(limit = 50) {
@@ -299,31 +310,31 @@ export const supabaseApi = {
     return data;
   },
 
-  async updateParceiroStatus(id: string, status: string) {
+  async updateParceiroStatus(
+    id: string,
+    status: string
+  ): Promise<Pick<ParceiroData, 'id' | 'status'>> {
     const { data, error } = await supabase
       .from('parceiros')
       .update({ status })
       .eq('id', id)
-      .select()
+      .select('id, status')
       .single();
-    
+
     if (error) throw error;
-    return data;
+    return data ?? { id, status };
   },
 
   async updateUserJourney(
     sessionId: string,
     data: Database['public']['Tables']['user_journey_simulacoes']['Update']
-  ) {
-    const { data: result, error } = await supabase
+  ): Promise<void> {
+    const { error } = await supabase
       .from('user_journey_simulacoes')
-      .update(data)
-      .eq('session_id', sessionId)
-      .select()
-      .maybeSingle();
+      .update(data, { returning: 'minimal' })
+      .eq('session_id', sessionId);
 
     if (error) throw error;
-    return result;
   },
 
   async getUserJourney(sessionId: string) {

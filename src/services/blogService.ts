@@ -466,7 +466,7 @@ export class BlogService {
       category: supabasePost.category as BlogCategory,
       imageUrl: supabasePost.image_url || '',
       slug: supabasePost.slug,
-      content: supabasePost.content,
+      content: supabasePost.content ?? '',
       readTime: supabasePost.read_time || 5,
       published: supabasePost.published,
       featuredPost: supabasePost.featured_post,
@@ -533,7 +533,7 @@ export class BlogService {
       console.log('🔍 Buscando posts do Supabase...');
       
       // Tentar buscar do Supabase primeiro (SEMPRE)
-      const supabasePosts = await supabaseApi.getAllBlogPosts();
+      const supabasePosts = await supabaseApi.getBlogPostSummaries();
       console.log(`📊 Posts encontrados no Supabase: ${supabasePosts?.length || 0}`);
       
       if (supabasePosts && supabasePosts.length >= 0) {
@@ -546,7 +546,7 @@ export class BlogService {
           await this.syncLocalToSupabase();
           
           // Tentar buscar novamente após sync
-          const reloadedPosts = await supabaseApi.getAllBlogPosts();
+          const reloadedPosts = await supabaseApi.getBlogPostSummaries();
           if (reloadedPosts && reloadedPosts.length > 0) {
             const reloadedConverted = reloadedPosts.map(this.convertSupabaseToBlogPost);
             this.saveToLocalStorageWithCleanup(reloadedConverted);
@@ -613,6 +613,52 @@ export class BlogService {
   static async getPostBySlug(slug: string): Promise<BlogPost | null> {
     const posts = await this.getAllPosts();
     return posts.find(post => post.slug === slug) || null;
+  }
+
+  /**
+   * Buscar post com conteúdo completo diretamente do Supabase
+   */
+  static async getPostWithContent(slug: string): Promise<BlogPost | null> {
+    try {
+      const supabasePost = await supabaseApi.getBlogPostBySlug(slug);
+      if (!supabasePost) {
+        return null;
+      }
+
+      const convertedPost = this.convertSupabaseToBlogPost(supabasePost);
+
+      // Atualizar cache local com o conteúdo completo
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem(this.STORAGE_KEY);
+          const cachedPosts: BlogPost[] = stored ? JSON.parse(stored) : [];
+
+          const index = cachedPosts.findIndex(post => post.slug === slug);
+          if (index !== -1) {
+            cachedPosts[index] = { ...cachedPosts[index], ...convertedPost };
+          } else {
+            cachedPosts.unshift(convertedPost);
+          }
+
+          this.saveToLocalStorageWithCleanup(cachedPosts);
+        } catch (storageError) {
+          console.warn('⚠️ Não foi possível atualizar cache local com conteúdo completo:', storageError);
+        }
+      }
+
+      return convertedPost;
+    } catch (error) {
+      console.error('❌ Erro ao buscar conteúdo completo do Supabase:', error);
+
+      // Fallback: tentar retornar dados do cache (sem conteúdo completo)
+      try {
+        const cachedPosts = await this.getAllPosts();
+        return cachedPosts.find(post => post.slug === slug) || null;
+      } catch (cacheError) {
+        console.error('❌ Erro ao carregar post do cache local:', cacheError);
+        return null;
+      }
+    }
   }
 
   /**

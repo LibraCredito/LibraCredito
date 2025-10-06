@@ -8,7 +8,9 @@ import {
 // Mock supabase module before importing the service
 const supabaseMock = { from: vi.fn() } as any;
 const supabaseApiMock = {
-  createUserJourneySimulacao: vi.fn(),
+  createSimulacao: vi.fn(),
+  createUserJourney: vi.fn(),
+  updateUserJourney: vi.fn(),
   updateSimulacaoStatus: vi.fn(),
   getSimulacoes: vi.fn(),
   getUserJourneysByVisitorIds: vi.fn(),
@@ -58,7 +60,9 @@ describe('LocalSimulationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     supabaseMock.from.mockReset();
-    supabaseApiMock.createUserJourneySimulacao.mockReset();
+    supabaseApiMock.createSimulacao.mockReset();
+    supabaseApiMock.createUserJourney.mockReset();
+    supabaseApiMock.updateUserJourney.mockReset();
     supabaseApiMock.updateSimulacaoStatus.mockReset();
     supabaseApiMock.getSimulacoes.mockReset();
     supabaseApiMock.getUserJourneysByVisitorIds.mockReset();
@@ -104,11 +108,12 @@ describe('LocalSimulationService', () => {
     });
 
     expect(result).toBeDefined();
-    expect(supabaseApiMock.createUserJourneySimulacao).not.toHaveBeenCalled();
+    expect(supabaseApiMock.createSimulacao).not.toHaveBeenCalled();
+    expect(supabaseApiMock.updateUserJourney).not.toHaveBeenCalled();
   });
 
   it('salva simulação no Supabase quando dados válidos são fornecidos', async () => {
-    supabaseApiMock.createUserJourneySimulacao.mockResolvedValue({ id: 'supabase-123' });
+    supabaseApiMock.createSimulacao.mockResolvedValue({ id: 'supabase-123' });
 
     const { LocalSimulationService } = await import('../localSimulationService');
 
@@ -128,17 +133,25 @@ describe('LocalSimulationService', () => {
       isRuralProperty: false
     });
 
-    expect(supabaseApiMock.createUserJourneySimulacao).toHaveBeenCalledTimes(1);
-    expect(supabaseApiMock.createUserJourneySimulacao).toHaveBeenCalledWith(expect.objectContaining({
+    expect(supabaseApiMock.createSimulacao).toHaveBeenCalledTimes(1);
+    expect(supabaseApiMock.createSimulacao).toHaveBeenCalledWith(expect.objectContaining({
       nome_completo: 'Maria Silva',
       email: 'maria@example.com',
       telefone: '11987654321'
     }));
+    expect(supabaseApiMock.updateUserJourney).toHaveBeenCalledWith(
+      'session-valid',
+      expect.objectContaining({
+        nome_completo: 'Maria Silva',
+        email: 'maria@example.com',
+        telefone: '11987654321'
+      })
+    );
     expect(result.userJourneyId).toBe('supabase-123');
   });
 
   it('inclui dados de origem ao salvar simulação quando disponíveis', async () => {
-    supabaseApiMock.createUserJourneySimulacao.mockResolvedValue({ id: 'supabase-456' });
+    supabaseApiMock.createSimulacao.mockResolvedValue({ id: 'supabase-456' });
 
     const { LocalSimulationService } = await import('../localSimulationService');
 
@@ -165,7 +178,8 @@ describe('LocalSimulationService', () => {
       referrer: 'https://google.com'
     });
 
-    expect(supabaseApiMock.createUserJourneySimulacao).toHaveBeenCalledWith(
+    expect(supabaseApiMock.updateUserJourney).toHaveBeenCalledWith(
+      'session-origin',
       expect.objectContaining({
         utm_source: 'google',
         utm_medium: 'cpc',

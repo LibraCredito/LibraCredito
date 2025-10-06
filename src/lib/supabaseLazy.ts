@@ -161,12 +161,12 @@ async function loadSupabaseClient() {
           return data ?? { id, status };
         },
 
-        // User Journey + Simulação
-        async createUserJourneySimulacao(
-          data: Database['public']['Tables']['user_journey_simulacoes']['Insert']
+        // User Journey
+        async createUserJourney(
+          data: Database['public']['Tables']['user_journey']['Insert']
         ) {
           const { data: result, error } = await client
-            .from('user_journey_simulacoes')
+            .from('user_journey')
             .upsert(data, { onConflict: 'session_id' })
             .select('id')
             .single();
@@ -218,25 +218,47 @@ async function loadSupabaseClient() {
 
         async updateUserJourney(
           sessionId: string,
-          data: Database['public']['Tables']['user_journey_simulacoes']['Update']
+          data: Database['public']['Tables']['user_journey']['Update']
         ) {
-          const { error } = await client
-            .from('user_journey_simulacoes')
-            .update(data, { returning: 'minimal' })
-            .eq('session_id', sessionId);
+          const { data: result, error } = await client
+            .from('user_journey')
+            .update(data)
+            .eq('session_id', sessionId)
+            .select()
+            .maybeSingle();
 
           if (error) throw error;
         },
 
         async getUserJourney(sessionId: string) {
           const { data, error } = await client
-            .from('user_journey_simulacoes')
+            .from('user_journey')
             .select('*')
             .eq('session_id', sessionId)
             .maybeSingle();
 
           if (error) throw error;
           return data;
+        },
+
+        async getUserJourneysBySessionIds(sessionIds: string[]) {
+          const { data, error } = await client
+            .from('user_journey')
+            .select('*')
+            .in('session_id', sessionIds);
+
+          if (error) throw error;
+          return data || [];
+        },
+
+        async getUserJourneysByVisitorIds(visitorIds: string[]) {
+          const { data, error } = await client
+            .from('user_journey')
+            .select('*')
+            .in('visitor_id', visitorIds);
+
+          if (error) throw error;
+          return data || [];
         },
 
         // Blog Posts - lazy loaded

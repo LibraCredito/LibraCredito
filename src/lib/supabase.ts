@@ -41,7 +41,7 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
 export interface SimulacaoData {
   id?: string;
   session_id: string;
-  visitor_id?: string;
+  visitor_id?: string | null;
   nome_completo: string;
   email: string;
   telefone: string;
@@ -50,13 +50,15 @@ export interface SimulacaoData {
   valor_imovel: number;
   parcelas: number;
   tipo_amortizacao: string;
-  parcela_inicial?: number;
-  parcela_final?: number;
-  imovel_proprio?: 'proprio' | 'terceiro';
-  ip_address?: string;
-  user_agent?: string;
+  parcela_inicial?: number | null;
+  parcela_final?: number | null;
+  imovel_proprio?: 'proprio' | 'terceiro' | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  status?: string | null;
+  integrado_crm?: boolean | null;
   created_at?: string;
-  status?: string;
+  updated_at?: string;
 }
 
 export interface ParceiroData {
@@ -80,7 +82,22 @@ export interface ParceiroData {
 }
 
 
-export interface UserJourneySimulacaoData {
+export interface PageVisit {
+  url: string;
+  timestamp: string;
+  time_spent?: number;
+}
+
+export interface DeviceInfo {
+  user_agent: string;
+  screen_resolution: string;
+  viewport_size: string;
+  device_type: 'mobile' | 'tablet' | 'desktop';
+  browser: string;
+  os: string;
+}
+
+export interface UserJourneyData {
   id?: string;
   session_id: string;
   visitor_id?: string | null;
@@ -171,7 +188,7 @@ export interface Database {
     Tables: {
       simulacoes: {
         Row: SimulacaoData;
-        Insert: Omit<SimulacaoData, 'id' | 'created_at'>;
+        Insert: Omit<SimulacaoData, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<SimulacaoData, 'id' | 'created_at'>>;
       };
       parceiros: {
@@ -179,10 +196,10 @@ export interface Database {
         Insert: Omit<ParceiroData, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ParceiroData, 'id' | 'created_at'>>;
       };
-      user_journey_simulacoes: {
-        Row: UserJourneySimulacaoData;
-        Insert: Omit<UserJourneySimulacaoData, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<UserJourneySimulacaoData, 'id' | 'created_at'>>;
+      user_journey: {
+        Row: UserJourneyData;
+        Insert: Omit<UserJourneyData, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<UserJourneyData, 'id' | 'created_at'>>;
       };
       blog_posts: {
         Row: BlogPostData;
@@ -308,12 +325,12 @@ export const supabaseApi = {
     return data ?? { id, status };
   },
 
-  // User Journey + Simulação
-  async createUserJourneySimulacao(
-    data: Database['public']['Tables']['user_journey_simulacoes']['Insert']
-  ): Promise<UserJourneySimulacaoData> {
+  // User Journey
+  async createUserJourney(
+    data: Database['public']['Tables']['user_journey']['Insert']
+  ) {
     const { data: result, error } = await supabase
-      .from('user_journey_simulacoes')
+      .from('user_journey')
       .upsert(data, { onConflict: 'session_id' })
       .select('id')
       .single();
@@ -370,19 +387,21 @@ export const supabaseApi = {
 
   async updateUserJourney(
     sessionId: string,
-    data: Database['public']['Tables']['user_journey_simulacoes']['Update']
-  ): Promise<void> {
-    const { error } = await supabase
-      .from('user_journey_simulacoes')
-      .update(data, { returning: 'minimal' })
-      .eq('session_id', sessionId);
+    data: Database['public']['Tables']['user_journey']['Update']
+  ) {
+    const { data: result, error } = await supabase
+      .from('user_journey')
+      .update(data)
+      .eq('session_id', sessionId)
+      .select()
+      .maybeSingle();
 
     if (error) throw error;
   },
 
   async getUserJourney(sessionId: string) {
     const { data, error } = await supabase
-      .from('user_journey_simulacoes')
+      .from('user_journey')
       .select('*')
       .eq('session_id', sessionId)
       .maybeSingle();
@@ -395,10 +414,8 @@ export const supabaseApi = {
     sessionIds: string[]
   ): Promise<UserJourneySummary[]> {
     const { data, error } = await supabase
-      .from('user_journey_simulacoes')
-      .select(
-        'session_id,visitor_id,utm_source,utm_medium,utm_campaign,utm_term,utm_content,landing_page,referrer,status'
-      )
+      .from('user_journey')
+      .select('*')
       .in('session_id', sessionIds);
 
     if (error) throw error;
@@ -409,10 +426,8 @@ export const supabaseApi = {
     visitorIds: string[]
   ): Promise<UserJourneySummary[]> {
     const { data, error } = await supabase
-      .from('user_journey_simulacoes')
-      .select(
-        'session_id,visitor_id,utm_source,utm_medium,utm_campaign,utm_term,utm_content,landing_page,referrer,status'
-      )
+      .from('user_journey')
+      .select('*')
       .in('visitor_id', visitorIds);
 
     if (error) throw error;

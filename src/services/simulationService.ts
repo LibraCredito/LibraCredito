@@ -20,7 +20,7 @@
  */
 
 import { getSecondaryWebhookUrl } from '@/lib/env';
-import { supabaseApi, UserJourneySimulacaoData } from '@/lib/supabase';
+import { supabaseApi, SimulacaoData, UserJourneyData } from '@/lib/supabase';
 import { simulateCredit } from '@/services/simulationApi';
 import { validateEmail, formatPhone } from '@/utils/validations';
 import { PloomesService } from '@/services/ploomesService';
@@ -112,11 +112,11 @@ export class SimulationService {
       
       // 5. Preparar dados para Supabase
       const supabaseData: Omit<
-        UserJourneySimulacaoData,
+        SimulacaoData,
         'id' | 'created_at' | 'updated_at'
       > = {
         session_id: input.sessionId,
-        visitor_id: input.visitorId,
+        visitor_id: input.visitorId || null,
         nome_completo: input.nomeCompleto,
         email: input.email,
         telefone: this.formatPhoneNumber(input.telefone),
@@ -128,43 +128,72 @@ export class SimulationService {
         parcela_inicial: processedResult.primeiraParcela,
         parcela_final: processedResult.ultimaParcela || processedResult.valor,
         imovel_proprio: 'proprio',
-        ip_address: input.ipAddress,
-        user_agent: input.userAgent,
+        ip_address: input.ipAddress || null,
+        user_agent: input.userAgent || null,
+        status: 'novo'
+      };
+      
+      console.log('💾 Salvando no Supabase:', supabaseData);
+
+      // 6. Salvar no Supabase
+      const savedSimulation = await supabaseApi.createSimulacao(supabaseData);
+
+      // 7. Enriquecer jornada do usuário com dados coletados
+      const journeyUpdate: Partial<UserJourneyData> = {
+        visitor_id: input.visitorId || null,
+        nome_completo: input.nomeCompleto,
+        email: input.email,
+        telefone: this.formatPhoneNumber(input.telefone),
+        cidade: input.cidade,
+        valor_emprestimo: input.valorEmprestimo,
+        valor_imovel: input.valorImovel,
+        parcelas: input.parcelas,
+        tipo_amortizacao: input.tipoAmortizacao,
+        parcela_inicial: processedResult.primeiraParcela,
+        parcela_final: processedResult.ultimaParcela || processedResult.valor,
+        imovel_proprio: 'proprio',
         status: 'novo'
       };
 
       if (input.utmSource !== undefined) {
-        supabaseData.utm_source = input.utmSource;
+        journeyUpdate.utm_source = input.utmSource;
       }
       if (input.utmMedium !== undefined) {
-        supabaseData.utm_medium = input.utmMedium;
+        journeyUpdate.utm_medium = input.utmMedium;
       }
       if (input.utmCampaign !== undefined) {
-        supabaseData.utm_campaign = input.utmCampaign;
+        journeyUpdate.utm_campaign = input.utmCampaign;
       }
       if (input.utmTerm !== undefined) {
-        supabaseData.utm_term = input.utmTerm;
+        journeyUpdate.utm_term = input.utmTerm;
       }
       if (input.utmContent !== undefined) {
-        supabaseData.utm_content = input.utmContent;
+        journeyUpdate.utm_content = input.utmContent;
       }
       if (input.referrer !== undefined) {
-        supabaseData.referrer = input.referrer;
+        journeyUpdate.referrer = input.referrer;
       }
       if (input.landingPage !== undefined && input.landingPage !== null) {
-        supabaseData.landing_page = input.landingPage;
+        journeyUpdate.landing_page = input.landingPage;
       }
-      
-      console.log('💾 Salvando no Supabase:', supabaseData);
-      
-      // 6. Salvar no Supabase
-      const savedSimulation = await supabaseApi.createUserJourneySimulacao(
-        supabaseData
-      );
-      
+
+      const sanitizedJourneyUpdate = Object.fromEntries(
+        Object.entries(journeyUpdate).filter(([, value]) => value !== undefined)
+      ) as Partial<UserJourneyData>;
+
+      if (Object.keys(sanitizedJourneyUpdate).length > 0) {
+        try {
+          await supabaseApi.updateUserJourney(input.sessionId, sanitizedJourneyUpdate);
+        } catch (journeyError) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Falha ao atualizar jornada do usuário:', journeyError);
+          }
+        }
+      }
+
       console.log('✅ Simulação salva:', savedSimulation);
-      
-      // 7. Retornar resultado formatado
+
+      // 8. Retornar resultado formatado
       return {
         id: savedSimulation.id!,
         valor: processedResult.valor,

@@ -129,6 +129,41 @@ export interface UserJourneyData {
   updated_at?: string;
 }
 
+export interface UserJourneySummary {
+  session_id: string | null;
+  visitor_id?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
+  utm_content?: string | null;
+  landing_page?: string | null;
+  referrer?: string | null;
+  status?: string | null;
+}
+
+export interface PageVisit {
+  url: string;
+  timestamp: string;
+  time_spent?: number;
+}
+
+export interface DeviceInfo {
+  user_agent: string;
+  screen_resolution: string;
+  viewport_size: string;
+  device_type: 'mobile' | 'tablet' | 'desktop';
+  browser: string;
+  os: string;
+}
+
+export interface GetSimulacoesOptions {
+  limit?: number;
+  page?: number;
+  status?: string;
+  searchTerm?: string;
+}
+
 export interface BlogPostData {
   id?: string;
   title: string;
@@ -234,34 +269,60 @@ export const supabaseApi = {
     return result;
   },
 
-  async getSimulacoes(limit = 1000) {
-    const { data, error } = await supabase
+  async getSimulacoes(options: GetSimulacoesOptions = {}) {
+    const {
+      limit = 1000,
+      page = 1,
+      status,
+      searchTerm
+    } = options;
+
+    const from = Math.max(0, (page - 1) * limit);
+    const to = from + limit - 1;
+
+    let query = supabase
       .from('simulacoes')
-      .select('*')
+      .select(
+        'id,nome_completo,email,status,created_at,valor_emprestimo,valor_imovel,parcelas,session_id,visitor_id'
+      )
       .not('nome_completo', 'is', null)
       .neq('nome_completo', '')
       .not('email', 'is', null)
       .neq('email', '')
-      .not('telefone', 'is', null)
-      .neq('telefone', '')
       .neq('status', 'novo')
       .order('created_at', { ascending: false })
-      .limit(limit);
-    
+      .range(from, to);
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    if (searchTerm) {
+      const sanitizedTerm = `%${searchTerm.trim()}%`;
+      query = query.or(
+        `nome_completo.ilike.${sanitizedTerm},email.ilike.${sanitizedTerm}`
+      );
+    }
+
+    const { data, error } = await query;
+
     if (error) throw error;
     return data;
   },
 
-  async updateSimulacaoStatus(id: string, status: string) {
+  async updateSimulacaoStatus(
+    id: string,
+    status: string
+  ): Promise<Pick<SimulacaoData, 'id' | 'status'>> {
     const { data, error } = await supabase
       .from('simulacoes')
       .update({ status })
       .eq('id', id)
-      .select()
+      .select('id, status')
       .single();
 
     if (error) throw error;
-    return data;
+    return data ?? { id, status };
   },
 
   // User Journey
@@ -271,23 +332,31 @@ export const supabaseApi = {
     const { data: result, error } = await supabase
       .from('user_journey')
       .upsert(data, { onConflict: 'session_id' })
-      .select()
+      .select('id')
       .single();
 
     if (error) throw error;
-    return result;
+    return {
+      ...data,
+      id: result?.id || null
+    } as UserJourneySimulacaoData;
   },
 
   // Parceiros
-  async createParceiro(data: Database['public']['Tables']['parceiros']['Insert']) {
+  async createParceiro(
+    data: Database['public']['Tables']['parceiros']['Insert']
+  ): Promise<ParceiroData> {
     const { data: result, error } = await supabase
       .from('parceiros')
       .insert(data)
-      .select()
+      .select('id')
       .single();
-    
+
     if (error) throw error;
-    return result;
+    return {
+      ...data,
+      id: result?.id || null
+    } as ParceiroData;
   },
 
   async getParceiros(limit = 50) {
@@ -301,16 +370,19 @@ export const supabaseApi = {
     return data;
   },
 
-  async updateParceiroStatus(id: string, status: string) {
+  async updateParceiroStatus(
+    id: string,
+    status: string
+  ): Promise<Pick<ParceiroData, 'id' | 'status'>> {
     const { data, error } = await supabase
       .from('parceiros')
       .update({ status })
       .eq('id', id)
-      .select()
+      .select('id, status')
       .single();
-    
+
     if (error) throw error;
-    return data;
+    return data ?? { id, status };
   },
 
   async updateUserJourney(
@@ -325,7 +397,6 @@ export const supabaseApi = {
       .maybeSingle();
 
     if (error) throw error;
-    return result;
   },
 
   async getUserJourney(sessionId: string) {
@@ -339,24 +410,28 @@ export const supabaseApi = {
     return data;
   },
 
-  async getUserJourneysBySessionIds(sessionIds: string[]) {
+  async getUserJourneysBySessionIds(
+    sessionIds: string[]
+  ): Promise<UserJourneySummary[]> {
     const { data, error } = await supabase
       .from('user_journey')
       .select('*')
       .in('session_id', sessionIds);
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as UserJourneySummary[];
   },
 
-  async getUserJourneysByVisitorIds(visitorIds: string[]) {
+  async getUserJourneysByVisitorIds(
+    visitorIds: string[]
+  ): Promise<UserJourneySummary[]> {
     const { data, error } = await supabase
       .from('user_journey')
       .select('*')
       .in('visitor_id', visitorIds);
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as UserJourneySummary[];
   },
 
   // Analytics

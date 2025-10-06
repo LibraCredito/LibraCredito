@@ -380,7 +380,7 @@ export class SimulationService {
    */
   static async getSimulacoes(limit = 50) {
     try {
-      return await supabaseApi.getSimulacoes(limit);
+      return await supabaseApi.getSimulacoes({ limit });
     } catch (error) {
       console.error('❌ Erro ao buscar simulações:', error);
       throw error;

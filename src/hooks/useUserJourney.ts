@@ -269,6 +269,11 @@ export function useUserJourney(): UserJourneyHook {
 
           existingJourney = await supabaseApi.createUserJourney(newJourney);
 
+          existingJourney = {
+            ...newJourney,
+            id: createdJourney?.id || null
+          };
+
           if (process.env.NODE_ENV === 'development') {
             console.log('Nova jornada criada:', existingJourney);
           }

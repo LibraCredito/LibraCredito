@@ -14,7 +14,8 @@ const supabaseApiMock = {
   updateSimulacaoStatus: vi.fn(),
   getSimulacoes: vi.fn(),
   getUserJourneysByVisitorIds: vi.fn(),
-  getUserJourneysBySessionIds: vi.fn()
+  getUserJourneysBySessionIds: vi.fn(),
+  getUserJourney: vi.fn()
 };
 vi.mock('@/lib/supabase', () => ({ supabase: supabaseMock, supabaseApi: supabaseApiMock }));
 
@@ -67,6 +68,8 @@ describe('LocalSimulationService', () => {
     supabaseApiMock.getSimulacoes.mockReset();
     supabaseApiMock.getUserJourneysByVisitorIds.mockReset();
     supabaseApiMock.getUserJourneysBySessionIds.mockReset();
+    supabaseApiMock.getUserJourney.mockReset();
+    supabaseApiMock.getUserJourney.mockResolvedValue(null);
     validateCityMock.mockClear();
     validateLtvMock.mockClear();
     validateLoanParametersMock.mockClear();

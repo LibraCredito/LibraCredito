@@ -25,7 +25,8 @@ import {
   supabaseApi,
   SimulacaoData,
   supabase,
-  UserJourneyData
+  UserJourneySimulacaoData,
+  type Database
 } from '@/lib/supabase';
 
 // Reutilizar interfaces do serviço original
@@ -794,45 +795,87 @@ export class LocalSimulationService {
           return undefined;
         };
 
+        let existingJourney: UserJourneySimulacaoData | null = null;
+        try {
+          existingJourney = await supabaseApi.getUserJourney(input.sessionId);
+        } catch (journeyFetchError) {
+          console.warn('⚠️ Erro ao buscar jornada do usuário:', journeyFetchError);
+        }
+
         const normalizedNome = input.nomeCompleto.trim();
         const normalizedEmail = input.email.trim().toLowerCase();
         const normalizedTelefone = input.telefone.replace(/\D/g, '');
         const normalizedCidade = getNormalizedString(
           input.cidade,
           fallbackSimulation?.cidade,
-          ploomesPayload.cidade
+          ploomesPayload.cidade,
+          existingJourney?.cidade
         );
 
         const valorEmprestimoNumber = resolveNumber(
           input.valorDesejadoEmprestimo,
           fallbackSimulation?.valor_emprestimo,
-          simulationData?.valor_emprestimo
+          simulationData?.valor_emprestimo,
+          existingJourney?.valor_emprestimo
         );
         const valorImovelNumber = resolveNumber(
           input.valorImovelGarantia,
           fallbackSimulation?.valor_imovel,
-          simulationData?.valor_imovel
+          simulationData?.valor_imovel,
+          existingJourney?.valor_imovel
         );
         const parcelasNumber = resolveNumber(
           input.quantidadeParcelas,
           fallbackSimulation?.parcelas,
-          simulationData?.parcelas
+          simulationData?.parcelas,
+          existingJourney?.parcelas
         );
         const parcelaInicialNumber = resolveNumber(
           input.valorParcelaCalculada,
           fallbackSimulation?.parcela_inicial,
-          simulationData?.parcela_inicial
+          simulationData?.parcela_inicial,
+          existingJourney?.parcela_inicial
         );
         const parcelaFinalNumber = resolveNumber(
           input.valorParcelaCalculada,
           fallbackSimulation?.parcela_final,
           fallbackSimulation?.parcela_inicial,
-          simulationData?.parcela_final
+          simulationData?.parcela_final,
+          existingJourney?.parcela_final
         );
         const tipoAmortizacaoValue = getNormalizedString(
           input.tipoAmortizacao?.toUpperCase(),
           fallbackSimulation?.tipo_amortizacao,
-          simulationData?.tipo_amortizacao
+          simulationData?.tipo_amortizacao,
+          existingJourney?.tipo_amortizacao
+        );
+        const utmSourceValue = getNormalizedString(
+          input.utm_source,
+          existingJourney?.utm_source
+        );
+        const utmMediumValue = getNormalizedString(
+          input.utm_medium,
+          existingJourney?.utm_medium
+        );
+        const utmCampaignValue = getNormalizedString(
+          input.utm_campaign,
+          existingJourney?.utm_campaign
+        );
+        const utmTermValue = getNormalizedString(
+          input.utm_term,
+          existingJourney?.utm_term
+        );
+        const utmContentValue = getNormalizedString(
+          input.utm_content,
+          existingJourney?.utm_content
+        );
+        const landingPageValue = getNormalizedString(
+          input.landing_page,
+          existingJourney?.landing_page
+        );
+        const referrerValue = getNormalizedString(
+          input.referrer,
+          existingJourney?.referrer
         );
 
         const journeyUpdatePayload: Partial<UserJourneyData> = {
@@ -846,19 +889,49 @@ export class LocalSimulationService {
           tipo_amortizacao: tipoAmortizacaoValue,
           parcela_inicial: parcelaInicialNumber,
           parcela_final: parcelaFinalNumber,
-          status: journeyStatus || fallbackSimulation?.status || 'interessado',
-          utm_source: getNormalizedString(input.utm_source),
-          utm_medium: getNormalizedString(input.utm_medium),
-          utm_campaign: getNormalizedString(input.utm_campaign),
-          utm_term: getNormalizedString(input.utm_term),
-          utm_content: getNormalizedString(input.utm_content),
-          landing_page: getNormalizedString(input.landing_page),
-          referrer: getNormalizedString(input.referrer)
+          status: journeyStatus || fallbackSimulation?.status || existingJourney?.status || 'interessado',
+          utm_source: utmSourceValue,
+          utm_medium: utmMediumValue,
+          utm_campaign: utmCampaignValue,
+          utm_term: utmTermValue,
+          utm_content: utmContentValue,
+          landing_page: landingPageValue,
+          referrer: referrerValue
         };
 
         const sanitizedJourneyUpdatePayload = Object.fromEntries(
           Object.entries(journeyUpdatePayload).filter(([, value]) => value !== undefined)
         ) as Partial<UserJourneyData>;
+
+        if (!existingJourney) {
+          const resolvedVisitorId =
+            input.visitorId?.trim() ||
+            fallbackSimulation?.visitor_id ||
+            simulationData?.visitor_id ||
+            null;
+
+          const journeyCreationPayload: Database['public']['Tables']['user_journey_simulacoes']['Insert'] = {
+            session_id: input.sessionId,
+            visitor_id: resolvedVisitorId,
+            utm_source: utmSourceValue ?? null,
+            utm_medium: utmMediumValue ?? null,
+            utm_campaign: utmCampaignValue ?? null,
+            utm_term: utmTermValue ?? null,
+            utm_content: utmContentValue ?? null,
+            landing_page: landingPageValue ?? null,
+            referrer: referrerValue ?? null,
+            ...sanitizedJourneyUpdatePayload
+          };
+
+          try {
+            console.log('➕ Criando jornada do usuário no Supabase:', journeyCreationPayload);
+            const createdJourney = await supabaseApi.createUserJourneySimulacao(journeyCreationPayload);
+            existingJourney = createdJourney || null;
+            console.log('✅ Jornada criada no Supabase');
+          } catch (journeyCreateError) {
+            console.error('⚠️ Erro ao criar jornada do usuário:', journeyCreateError);
+          }
+        }
 
         if (Object.keys(sanitizedJourneyUpdatePayload).length > 0) {
           console.log('🔁 Atualizando jornada do usuário com dados do contato:', sanitizedJourneyUpdatePayload);

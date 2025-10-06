@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,44 +12,55 @@ import Building from 'lucide-react/dist/esm/icons/building';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import { cn } from '@/lib/utils';
 import { formatPhone, validatePhone } from '@/utils/validations';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from '@/components/ui/dialog';
 
 interface SanitizedPhoneResult {
   sanitized: string;
   ddiRemoved: boolean;
-  addedNine: boolean;
+  trimmedToEightDigits: boolean;
 }
 
 const sanitizePhoneInput = (value: string): SanitizedPhoneResult => {
   let digitsOnly = value.replace(/\D/g, '');
   let ddiRemoved = false;
-  let addedNine = false;
+  let trimmedToEightDigits = false;
 
-  if (digitsOnly.length > 11 && digitsOnly.startsWith('55')) {
+  if (!digitsOnly) {
+    return { sanitized: '', ddiRemoved, trimmedToEightDigits };
+  }
+
+  digitsOnly = digitsOnly.replace(/^0+/, '');
+
+  if (digitsOnly.startsWith('55') && digitsOnly.length > 11) {
     digitsOnly = digitsOnly.slice(2);
     ddiRemoved = true;
+    digitsOnly = digitsOnly.replace(/^0+/, '');
   }
 
-  if (digitsOnly.length > 11) {
-    digitsOnly = digitsOnly.slice(0, 11);
+  if (digitsOnly.length <= 2) {
+    return { sanitized: digitsOnly, ddiRemoved, trimmedToEightDigits };
   }
 
-  if (digitsOnly.length > 2) {
-    const ddd = digitsOnly.slice(0, 2);
-    const subscriber = digitsOnly.slice(2);
-    if (subscriber.length === 8) {
-      digitsOnly = `${ddd}9${subscriber}`;
-      addedNine = true;
-    }
-  }
+  const ddd = digitsOnly.slice(0, 2);
+  let subscriber = digitsOnly.slice(2);
 
-  if (digitsOnly.length > 11) {
-    digitsOnly = digitsOnly.slice(0, 11);
+  if (subscriber.length > 8) {
+    subscriber = subscriber.slice(-8);
+    trimmedToEightDigits = true;
   }
 
   return {
-    sanitized: digitsOnly,
+    sanitized: `${ddd}${subscriber}`,
     ddiRemoved,
-    addedNine
+    trimmedToEightDigits
   };
 };
 
@@ -91,11 +102,8 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [telefoneSanitizado, setTelefoneSanitizado] = useState('');
-  const [phoneSanitizationWarnings, setPhoneSanitizationWarnings] = useState({
-    extraDDI: false,
-    missingNine: false
-  });
+  const sanitizedPhone = useMemo(() => sanitizePhoneInput(telefone), [telefone]);
+  const [phoneConfirmationOpen, setPhoneConfirmationOpen] = useState(false);
   const [imovelProprio, setImovelProprio] = useState<'proprio' | 'terceiro' | ''>('');
   const [aceitePrivacidade, setAceitePrivacidade] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -104,7 +112,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
   const invalidNome = nome.trim() === '';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const invalidEmail = !emailRegex.test(email.trim());
-  const sanitizedTelefone = telefoneSanitizado || sanitizePhoneInput(telefone).sanitized;
+  const sanitizedTelefone = sanitizedPhone.sanitized;
   const invalidTelefone = !validatePhone(sanitizedTelefone);
   const invalidImovelProprio = imovelProprio === '';
   const invalidAceite = !aceitePrivacidade;
@@ -122,32 +130,18 @@ const ContactForm: React.FC<ContactFormProps> = ({
   }, [formComplete]);
 
   const handlePhoneChange = (value: string) => {
-    const { sanitized, ddiRemoved, addedNine } = sanitizePhoneInput(value);
-    setTelefoneSanitizado(sanitized);
-    setTelefone(sanitized ? formatPhone(sanitized) : '');
-    setPhoneSanitizationWarnings({
-      extraDDI: ddiRemoved,
-      missingNine: addedNine
-    });
+    setTelefone(value);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetForm = () => {
+    setNome('');
+    setEmail('');
+    setTelefone('');
+    setImovelProprio('');
+    setAceitePrivacidade(false);
+  };
 
-    if (!formComplete) {
-      setShowIncompleteError(true);
-      return;
-    }
-    
-    console.log('🔍 Debug dados da simulação:', {
-      simulationResult,
-      simulationId: simulationResult.id,
-      userJourneyId: simulationResult.userJourneyId,
-      sessionId,
-      hasId: !!simulationResult.id,
-      hasSessionId: !!sessionId
-    });
-    
+  const submitContact = async () => {
     if (!aceitePrivacidade) {
       alert('É necessário aceitar a Política de Privacidade para continuar.');
       return;
@@ -163,7 +157,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
       alert('Erro: ID da simulação não encontrado. Tente simular novamente.');
       return;
     }
-    
+
     if (!sessionId) {
       console.error('❌ Session ID não encontrado');
       alert('Erro: Session ID não encontrado. Tente recarregar a página.');
@@ -171,7 +165,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
     }
 
     setLoading(true);
-    
+
     try {
       console.log('📋 Enviando formulário de contato:', {
         simulationId: simulationResult.id,
@@ -184,7 +178,6 @@ const ContactForm: React.FC<ContactFormProps> = ({
       });
 
       const journey = getJourneyData();
-
 
       await LocalSimulationService.processContact({
         simulationId: simulationResult.id,
@@ -213,12 +206,12 @@ const ContactForm: React.FC<ContactFormProps> = ({
         referrer: journey?.referrer ?? null
 
       });
-      
+
       // Redirecionar diretamente para a página de confirmação com resumo
       const summary = {
         nome,
         email,
-        telefone,
+        telefone: sanitizedTelefone,
         valorEmprestimo: simulationResult.valorEmprestimo,
         valorImovel: simulationResult.valorImovel,
         cidade: simulationResult.cidade,
@@ -241,24 +234,17 @@ const ContactForm: React.FC<ContactFormProps> = ({
       const whatsappLink = `https://wa.me/5516997338791?text=${encodeURIComponent(mensagem)}`;
 
       navigate('/confirmacao', { state: { summary, whatsappLink } });
-      
-      // Limpar formulário
-      setNome('');
-      setEmail('');
-      setTelefone('');
-      setTelefoneSanitizado('');
-      setPhoneSanitizationWarnings({ extraDDI: false, missingNine: false });
-      setImovelProprio('');
-      setAceitePrivacidade(false);
-      
+
+      resetForm();
+
     } catch (error) {
       console.error('❌ Erro ao enviar solicitação:', error);
-      
+
       let mensagemErro = 'Erro ao enviar solicitação. ';
-      
+
       if (error instanceof Error) {
         // Verificar se é erro de duplicidade do Ploomes/CRM
-        if (error.message.toLowerCase().includes('já existe') || 
+        if (error.message.toLowerCase().includes('já existe') ||
             error.message.toLowerCase().includes('7 dias') ||
             error.message.toLowerCase().includes('lead já existe')) {
           mensagemErro = '⚠️ Você já possui uma solicitação em andamento.\n\nNossa equipe já está analisando seu pedido anterior.\nAguarde nosso contato!\n\n📞 Em caso de dúvidas, entre em contato pelo WhatsApp.';
@@ -268,12 +254,85 @@ const ContactForm: React.FC<ContactFormProps> = ({
       } else {
         mensagemErro += 'Por favor, tente novamente.';
       }
-      
+
       alert(mensagemErro);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formComplete) {
+      setShowIncompleteError(true);
+      return;
+    }
+
+    console.log('🔍 Debug dados da simulação:', {
+      simulationResult,
+      simulationId: simulationResult.id,
+      userJourneyId: simulationResult.userJourneyId,
+      sessionId,
+      hasId: !!simulationResult.id,
+      hasSessionId: !!sessionId
+    });
+
+    setPhoneConfirmationOpen(true);
+  };
+
+  const confirmPhoneAndSubmit = async () => {
+    setPhoneConfirmationOpen(false);
+    await submitContact();
+  };
+
+  const formattedSanitizedTelefone = sanitizedTelefone ? formatPhone(sanitizedTelefone) : '';
+
+  const phoneConfirmationDialog = (
+    <Dialog open={phoneConfirmationOpen} onOpenChange={setPhoneConfirmationOpen}>
+      <DialogContent className="max-w-md" hideCloseButton>
+        <DialogHeader>
+          <DialogTitle>Confirme o telefone informado</DialogTitle>
+          <DialogDescription>
+            Verifique se o número abaixo está correto antes de enviar seus dados para análise.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm text-libra-navy">
+          <div>
+            <p className="font-medium">Como você digitou:</p>
+            <p className="mt-1 rounded bg-libra-light/40 px-3 py-2 break-all">{telefone || '—'}</p>
+          </div>
+          <div>
+            <p className="font-medium">Como iremos enviar ao time da Libra:</p>
+            <p className="mt-1 rounded bg-libra-light px-3 py-2 font-semibold">
+              {formattedSanitizedTelefone || sanitizedTelefone}
+              <span className="block text-xs text-libra-navy/80">{sanitizedTelefone}</span>
+            </p>
+          </div>
+          {(sanitizedPhone.ddiRemoved || sanitizedPhone.trimmedToEightDigits) && (
+            <div className="rounded border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-900">
+              {sanitizedPhone.ddiRemoved && (
+                <p>Removemos o DDI internacional antes de padronizar o número.</p>
+              )}
+              {sanitizedPhone.trimmedToEightDigits && (
+                <p>Mantivemos apenas os oito últimos dígitos após o DDD, conforme solicitado.</p>
+              )}
+            </div>
+          )}
+        </div>
+        <DialogFooter className="sm:space-x-2 sm:space-y-0 space-y-2">
+          <DialogClose asChild>
+            <Button type="button" variant="outline" disabled={loading}>
+              Editar número
+            </Button>
+          </DialogClose>
+          <Button type="button" onClick={confirmPhoneAndSubmit} disabled={loading}>
+            Confirmar telefone
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   const valorFormatado = simulationResult.valor.toLocaleString('pt-BR', {
     style: 'currency',
@@ -283,12 +342,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
   // Versão compacta para uso no resultado visual
   if (compact) {
     return (
-      <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
-        <div>
-          <label htmlFor="nome-compact" className="sr-only">
-            Nome Completo
-          </label>
-          <Input
+      <>
+        <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
+          <div>
+            <label htmlFor="nome-compact" className="sr-only">
+              Nome Completo
+            </label>
+            <Input
             id="nome-compact"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
@@ -342,13 +402,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
             required
             aria-required="true"
           />
-          {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.missingNine) && (
+          {(sanitizedPhone.ddiRemoved || sanitizedPhone.trimmedToEightDigits) && sanitizedTelefone && (
             <div className="mt-1 text-xs text-yellow-100">
-              {phoneSanitizationWarnings.extraDDI && (
-                <p>Removemos o DDI internacional +55 do número informado.</p>
+              {sanitizedPhone.ddiRemoved && (
+                <p>Removemos o DDI internacional (por exemplo, +55) do número informado.</p>
               )}
-              {phoneSanitizationWarnings.missingNine && (
-                <p>Adicionamos o dígito 9 obrigatório após o DDD.</p>
+              {sanitizedPhone.trimmedToEightDigits && (
+                <p>Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.</p>
               )}
             </div>
           )}
@@ -452,7 +512,9 @@ const ContactForm: React.FC<ContactFormProps> = ({
         {showIncompleteError && !formComplete && (
           <p className="text-red-600 text-sm mt-2">Preencha todos os campos</p>
         )}
-      </form>
+        </form>
+        {phoneConfirmationDialog}
+      </>
     );
   }
 
@@ -544,13 +606,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
                   required
                   aria-required="true"
                 />
-                {(phoneSanitizationWarnings.extraDDI || phoneSanitizationWarnings.missingNine) && (
+                {(sanitizedPhone.ddiRemoved || sanitizedPhone.trimmedToEightDigits) && sanitizedTelefone && (
                   <div className="mt-1 text-xs text-yellow-700">
-                    {phoneSanitizationWarnings.extraDDI && (
-                      <p>Removemos o DDI internacional +55 do número informado.</p>
+                    {sanitizedPhone.ddiRemoved && (
+                      <p>Removemos o DDI internacional (por exemplo, +55) do número informado.</p>
                     )}
-                    {phoneSanitizationWarnings.missingNine && (
-                      <p>Adicionamos o dígito 9 obrigatório após o DDD.</p>
+                    {sanitizedPhone.trimmedToEightDigits && (
+                      <p>Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.</p>
                     )}
                   </div>
                 )}
@@ -663,6 +725,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
               <p className="text-red-600 text-sm mt-2">Preencha todos os campos</p>
             )}
           </form>
+          {phoneConfirmationDialog}
         </CardContent>
       </Card>
     </div>

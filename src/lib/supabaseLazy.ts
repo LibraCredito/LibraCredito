@@ -8,7 +8,11 @@
  * Reduz ~116KB do bundle inicial
  */
 
-import type { Database, GetSimulacoesOptions } from './supabase';
+import type {
+  Database,
+  GetSimulacoesOptions,
+  UserJourneySimulacaoData
+} from './supabase';
 
 // Cache do cliente para evitar múltiplas inicializações
 let supabaseClient: any = null;
@@ -168,14 +172,14 @@ async function loadSupabaseClient() {
           const { data: result, error } = await client
             .from('user_journey')
             .upsert(data, { onConflict: 'session_id' })
-            .select('id')
+            .select()
             .single();
 
           if (error) throw error;
-          return {
+          return (result ?? {
             ...data,
-            id: result?.id || null
-          } as UserJourneySimulacaoData;
+            id: undefined
+          }) as UserJourneySimulacaoData;
         },
 
         // Parceiros

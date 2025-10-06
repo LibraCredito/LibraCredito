@@ -267,11 +267,11 @@ export function useUserJourney(): UserJourneyHook {
             ip_address: null
           };
 
-          existingJourney = await supabaseApi.createUserJourney(newJourney);
+          const createdJourney = await supabaseApi.createUserJourney(newJourney);
 
-          existingJourney = {
+          existingJourney = createdJourney ?? {
             ...newJourney,
-            id: createdJourney?.id || null
+            id: undefined
           };
 
           if (process.env.NODE_ENV === 'development') {

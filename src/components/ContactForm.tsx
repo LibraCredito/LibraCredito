@@ -50,10 +50,14 @@ const sanitizePhoneInput = (value: string): SanitizedPhoneResult => {
   }
 
   const ddd = digitsOnly.slice(0, 2);
-  let subscriber = digitsOnly.slice(2);
+  const originalSubscriber = digitsOnly.slice(2);
+  let subscriber = originalSubscriber;
 
-  if (subscriber.length > 8) {
-    subscriber = subscriber.slice(-8);
+  if (subscriber.length > 9) {
+    subscriber = subscriber.slice(-9);
+  }
+
+  if (subscriber.length === 8 && originalSubscriber.length > 8) {
     trimmedToEightDigits = true;
   }
 
@@ -304,18 +308,6 @@ const ContactForm: React.FC<ContactFormProps> = ({
   };
 
   const formattedSanitizedTelefone = sanitizedTelefone ? formatPhone(sanitizedTelefone) : '';
-  const formattedWithInsertedNine = useMemo(() => {
-    if (sanitizedTelefone.length === 10) {
-      const ddd = sanitizedTelefone.slice(0, 2);
-      const subscriber = sanitizedTelefone.slice(2);
-
-      if (subscriber.length === 8) {
-        return `(${ddd}) 9 ${subscriber.slice(0, 4)}-${subscriber.slice(4)}`;
-      }
-    }
-
-    return formattedSanitizedTelefone || sanitizedTelefone;
-  }, [formattedSanitizedTelefone, sanitizedTelefone]);
 
   const phoneConfirmationDialog = (
     <Dialog open={phoneConfirmationOpen} onOpenChange={setPhoneConfirmationOpen}>
@@ -332,11 +324,9 @@ const ContactForm: React.FC<ContactFormProps> = ({
             <p className="mt-1 rounded bg-libra-light/40 px-3 py-2 break-all">{telefone || '—'}</p>
           </div>
           <div>
-            <p className="font-medium">
-              Como iremos enviar ao time da Libra (com o 9 entre o DDD e os últimos 8 dígitos):
-            </p>
+            <p className="font-medium">Como iremos enviar ao time da Libra:</p>
             <p className="mt-1 rounded bg-libra-light px-3 py-2 font-semibold">
-              {formattedWithInsertedNine}
+              {formattedSanitizedTelefone || sanitizedTelefone}
             </p>
           </div>
           {(sanitizedPhone.ddiRemoved || sanitizedPhone.trimmedToEightDigits) && (

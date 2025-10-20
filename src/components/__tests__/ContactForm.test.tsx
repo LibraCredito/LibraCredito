@@ -79,7 +79,6 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
-    await confirmPhoneDialog('(35) 9 9962-5948');
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -93,10 +92,12 @@ describe('ContactForm', () => {
           landing_page: 'https://example.com',
           referrer: 'https://referrer.com',
           cidade: 'São Paulo',
-          telefone: '3599625948'
+          telefone: '35999625948'
         })
       );
     });
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('handles missing journey data and submits with null UTM fields', async () => {
@@ -121,7 +122,7 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
-    await confirmPhoneDialog('(35) 9 9962-5948');
+    await confirmPhoneDialog('(35) 99962-5948');
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
@@ -134,7 +135,7 @@ describe('ContactForm', () => {
           landing_page: null,
           referrer: null,
           cidade: 'São Paulo',
-          telefone: '3599625948'
+          telefone: '35999625948'
         })
       );
     });
@@ -160,17 +161,19 @@ describe('ContactForm', () => {
     fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: '5511999999999' } });
 
     expect(screen.getByText('Removemos o DDI internacional (por exemplo, +55) do número informado.')).toBeInTheDocument();
-    expect(screen.getByText('Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.')
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
-    await confirmPhoneDialog('(11) 9 9999-9999');
+    await confirmPhoneDialog('(11) 99999-9999');
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
-        expect.objectContaining({ telefone: '1199999999' })
+        expect.objectContaining({ telefone: '11999999999' })
       );
     });
   });
@@ -198,67 +201,32 @@ describe('ContactForm', () => {
       screen.queryByText('Removemos o DDI internacional (por exemplo, +55) do número informado.')
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText('Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.')
-    ).toBeInTheDocument();
+      screen.queryByText('Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.')
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
-    await confirmPhoneDialog('(55) 9 8765-4321');
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
-        expect.objectContaining({ telefone: '5587654321' })
+        expect.objectContaining({ telefone: '55987654321' })
       );
     });
-  });
 
-  it('trims numbers longer than DDD + 8 dígitos and warns the user', async () => {
-    mockGetJourneyData.mockReturnValue(undefined);
-
-    const simulationResult = {
-      id: 'local_sim4',
-      valor: 1000,
-      amortizacao: 'PRICE',
-      parcelas: 12,
-      valorEmprestimo: 50000,
-      valorImovel: 100000,
-      cidade: 'São Paulo'
-    } as any;
-
-    render(<ContactForm simulationResult={simulationResult} />);
-
-    fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Carlos Souza' } });
-    fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'carlos@example.com' } });
-    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: '35999625948' } });
-
-    expect(screen.getByText('Padronizamos o telefone para DDD + 8 dígitos, mantendo apenas os oito últimos dígitos informados.')).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Paula Gomes' } });
-    fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'paula@example.com' } });
-    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: inputVariant } });
-    fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
-    fireEvent.click(screen.getByRole('checkbox'));
-
-    fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
-    await confirmPhoneDialog('(35) 9 9962-5948');
-
-    await waitFor(() => {
-      expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
-        expect.objectContaining({ telefone: '3599625948' })
-      );
-    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it.each([
-    '+5535999625948',
-    '+55 (35) 9 9962-5948',
-    '+55 35 99962 5948',
-    '55 (35) 99962 5948',
-    '(35) 99962-5948',
-    '3599625948'
-  ])('normalizes "%s" to DDD + 8 digits before submitting', async (inputVariant) => {
+    { input: '+5535999625948', expected: '35999625948', expectConfirmation: true, formatted: '(35) 99962-5948' },
+    { input: '+55 (35) 9 9962-5948', expected: '35999625948', expectConfirmation: true, formatted: '(35) 99962-5948' },
+    { input: '+55 35 99962 5948', expected: '35999625948', expectConfirmation: true, formatted: '(35) 99962-5948' },
+    { input: '55 (35) 99962 5948', expected: '35999625948', expectConfirmation: true, formatted: '(35) 99962-5948' },
+    { input: '(35) 99962-5948', expected: '35999625948', expectConfirmation: false, formatted: '(35) 99962-5948' },
+    { input: '35999625948', expected: '35999625948', expectConfirmation: false, formatted: '(35) 99962-5948' },
+    { input: '3599625948', expected: '3599625948', expectConfirmation: false, formatted: '(35) 9962-5948' }
+  ])('normalizes "%s" to the expected sanitized phone before submitting', async ({ input, expected, expectConfirmation, formatted }) => {
     mockGetJourneyData.mockReturnValue(undefined);
 
     const simulationResult = {
@@ -275,28 +243,23 @@ describe('ContactForm', () => {
 
     fireEvent.change(screen.getByLabelText(/Nome Completo/i), { target: { value: 'Paula Gomes' } });
     fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'paula@example.com' } });
-    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: inputVariant } });
+    fireEvent.change(screen.getByLabelText(/Telefone/i), { target: { value: input } });
     fireEvent.click(screen.getByLabelText(/Imóvel Próprio/i));
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
 
-    const digitsOnly = inputVariant.replace(/\D/g, '').replace(/^0+/, '');
-    const requiresConfirmation = digitsOnly !== '3599625948';
-
-    if (requiresConfirmation) {
-      await confirmPhoneDialog('(35) 9 9962-5948');
+    if (expectConfirmation) {
+      await confirmPhoneDialog(formatted);
+    } else {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     }
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(
-        expect.objectContaining({ telefone: '3599625948' })
+        expect.objectContaining({ telefone: expected })
       );
     });
-
-    if (!requiresConfirmation) {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    }
   });
 
   it('keeps already valid phone numbers unchanged without warnings', async () => {
@@ -325,7 +288,6 @@ describe('ContactForm', () => {
     fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /Solicitar análise agora/i }));
-    await confirmPhoneDialog();
 
     await waitFor(() => {
       expect(LocalSimulationService.processContact).toHaveBeenCalledWith(

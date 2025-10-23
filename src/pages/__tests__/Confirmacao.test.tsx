@@ -75,13 +75,12 @@ describe('Confirmacao page', () => {
     expect(
       screen.getByRole('link', { name: /Conheça a Libra/i })
     ).toBeInTheDocument();
-    const atendenteLink = screen.getByRole('link', {
-      name: /Falar com a Atendente/i,
-    });
-    expect(atendenteLink).toHaveAttribute(
-      'href',
-      'https://wa.me/5516997338791'
-    );
+    expect(
+      screen.getByRole('link', { name: /Conheça a Libra/i })
+    ).toHaveAttribute('href', '/quem-somos');
+    expect(
+      screen.getByText(/Fique atento ao telefone/i)
+    ).toBeInTheDocument();
   });
 
   it('scrolls to top on mount', () => {

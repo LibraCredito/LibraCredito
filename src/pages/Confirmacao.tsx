@@ -1,10 +1,12 @@
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import WaveSeparator from '@/components/ui/WaveSeparator';
 
 const Confirmacao = () => {
+  const topAnchorRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     // Runs once on mount to update page metadata
     document.title = 'Simulação Enviada | Libra Crédito';
@@ -31,8 +33,30 @@ const Confirmacao = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, []);
 
+  useEffect(() => {
+    if (!topAnchorRef.current) {
+      return;
+    }
+
+    const scrollToTop = () => {
+      topAnchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    };
+
+    // Reforça o reset de scroll em diferentes ciclos de renderização
+    scrollToTop();
+
+    const rafId = window.requestAnimationFrame(scrollToTop);
+    const timeoutId = window.setTimeout(scrollToTop, 150);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
   return (
     <MobileLayout>
+      <div ref={topAnchorRef} aria-hidden="true" />
       <WaveSeparator variant="hero" height="md" inverted />
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-6 bg-white">
 

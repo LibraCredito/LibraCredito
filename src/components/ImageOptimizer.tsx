@@ -73,6 +73,8 @@ interface ImageOptimizerProps {
   height?: number;
   widths?: number[];
   sizes?: string;
+  decoding?: 'sync' | 'async' | 'auto';
+  fetchPriority?: 'high' | 'low' | 'auto';
 }
 
 const ImageOptimizer: React.FC<ImageOptimizerProps> = ({
@@ -86,12 +88,16 @@ const ImageOptimizer: React.FC<ImageOptimizerProps> = ({
   width,
   height,
   widths,
-  sizes
+  sizes,
+  decoding,
+  fetchPriority,
 }) => {
   const srcSet = widths?.map((w) => `${src}?width=${w} ${w}w`).join(', ');
   const allClasses = `${className} ${imgClassName}`;
   const hasWidthClass = /\bw-\S+/.test(allClasses);
   const hasHeightClass = /\bh-\S+/.test(allClasses);
+  const resolvedDecoding = decoding ?? (priority ? 'sync' : 'async');
+  const resolvedFetchPriority = fetchPriority ?? (priority ? 'high' : undefined);
 
   const imageElement = (
     <img
@@ -106,9 +112,10 @@ const ImageOptimizer: React.FC<ImageOptimizerProps> = ({
       )}
       width={width}
       height={height}
-      decoding="async"
+      decoding={resolvedDecoding}
       srcSet={srcSet}
       sizes={sizes}
+      fetchPriority={resolvedFetchPriority}
     />
   );
 

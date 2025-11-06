@@ -1,7 +1,7 @@
 import React from 'react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 import { Button } from './ui/button';
-import { ChevronDown } from 'lucide-react';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import type { SessionGroupWithJourney } from '@/services/localSimulationService';
 import { cn } from '@/lib/utils';
 

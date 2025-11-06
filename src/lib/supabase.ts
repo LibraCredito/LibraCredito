@@ -19,6 +19,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import {
+  SIMULATION_PLACEHOLDER_EMAIL,
+  SIMULATION_PLACEHOLDER_NAME,
+  SIMULATION_PLACEHOLDER_PHONE
+} from '@/constants/simulationPlaceholders';
 
 // Configurações do Supabase - obtidas de variáveis de ambiente
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -149,6 +154,7 @@ export interface UserJourneySummary {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  time_on_site?: number | null;
   status?: string | null;
 }
 
@@ -293,12 +299,38 @@ export const supabaseApi = {
     let query = supabase
       .from('simulacoes')
       .select(
-        'id,nome_completo,email,status,created_at,valor_emprestimo,valor_imovel,parcelas,session_id,visitor_id'
+        [
+          'id',
+          'nome_completo',
+          'email',
+          'telefone',
+          'status',
+          'created_at',
+          'valor_emprestimo',
+          'valor_imovel',
+          'parcelas',
+          'tipo_amortizacao',
+          'session_id',
+          'visitor_id',
+          'utm_source',
+          'utm_medium',
+          'utm_campaign',
+          'utm_term',
+          'utm_content',
+          'landing_page',
+          'referrer',
+          'time_on_site'
+        ].join(',')
       )
       .not('nome_completo', 'is', null)
       .neq('nome_completo', '')
+      .neq('nome_completo', SIMULATION_PLACEHOLDER_NAME)
       .not('email', 'is', null)
       .neq('email', '')
+      .neq('email', SIMULATION_PLACEHOLDER_EMAIL)
+      .not('telefone', 'is', null)
+      .neq('telefone', '')
+      .neq('telefone', SIMULATION_PLACEHOLDER_PHONE)
       .neq('status', 'novo')
       .order('created_at', { ascending: false })
       .range(from, to);
@@ -422,26 +454,26 @@ export const supabaseApi = {
 
   async getUserJourneysBySessionIds(
     sessionIds: string[]
-  ): Promise<UserJourneySummary[]> {
+  ): Promise<UserJourneyData[]> {
     const { data, error } = await supabase
       .from('user_journey')
       .select('*')
       .in('session_id', sessionIds);
 
     if (error) throw error;
-    return (data || []) as UserJourneySummary[];
+    return (data || []) as UserJourneyData[];
   },
 
   async getUserJourneysByVisitorIds(
     visitorIds: string[]
-  ): Promise<UserJourneySummary[]> {
+  ): Promise<UserJourneyData[]> {
     const { data, error } = await supabase
       .from('user_journey')
       .select('*')
       .in('visitor_id', visitorIds);
 
     if (error) throw error;
-    return (data || []) as UserJourneySummary[];
+    return (data || []) as UserJourneyData[];
   },
 
   // Analytics

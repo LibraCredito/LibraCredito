@@ -682,7 +682,7 @@ const AdminDashboard: React.FC = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
-                      <TableHead>Origem</TableHead>
+                      <TableHead>Campanha & Origem</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Contato</TableHead>
                       <TableHead>Valores</TableHead>

@@ -25,6 +25,7 @@ import {
   supabaseApi,
   SimulacaoData,
   supabase,
+  UserJourneyData,
   UserJourneySimulacaoData,
   type Database
 } from '@/lib/supabase';
@@ -103,9 +104,53 @@ export interface SessionGroupWithJourney {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  time_on_site?: number | null;
   journey_status?: string | null;
   primary_session_id?: string | null;
 }
+
+const countJourneySignals = (journey?: Partial<UserJourneyData> | null): number => {
+  if (!journey) return 0;
+  const trackedKeys: (keyof UserJourneyData)[] = [
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_term',
+    'utm_content',
+    'landing_page',
+    'referrer',
+    'time_on_site'
+  ];
+  return trackedKeys.reduce((count, key) => {
+    const value = journey[key];
+    if (value === undefined || value === null) {
+      return count;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+      return count;
+    }
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return count;
+    }
+    return count + 1;
+  }, 0);
+};
+
+const pickBetterJourney = (
+  current: UserJourneyData | undefined,
+  candidate: UserJourneyData | undefined
+): UserJourneyData | undefined => {
+  if (!candidate) {
+    return current;
+  }
+  if (!current) {
+    return candidate;
+  }
+
+  return countJourneySignals(candidate) >= countJourneySignals(current)
+    ? candidate
+    : current;
+};
 
 // Classe principal do serviço local
 export class LocalSimulationService {
@@ -1144,7 +1189,7 @@ export class LocalSimulationService {
 
       const grouped = new Map<string, SimulacaoData[]>();
       const sessionIds = new Set<string>();
-      const visitorOnlyIds = new Set<string>();
+      const visitorIds = new Set<string>();
 
       for (const sim of simulacoes) {
         const key = sim.visitor_id || sim.session_id;
@@ -1156,20 +1201,38 @@ export class LocalSimulationService {
 
         if (sim.session_id) {
           sessionIds.add(sim.session_id);
-        } else if (sim.visitor_id) {
-          visitorOnlyIds.add(sim.visitor_id);
+        }
+        if (sim.visitor_id) {
+          visitorIds.add(sim.visitor_id);
         }
       }
 
-      let journeys: UserJourneyData[] = [];
+      const journeyMap = new Map<string, UserJourneyData>();
+      const mergeJourney = (
+        key: string | null | undefined,
+        journey: UserJourneyData | null | undefined
+      ) => {
+        if (!key || !journey) return;
+        const current = journeyMap.get(key);
+        const better = pickBetterJourney(current, journey);
+        if (better) {
+          journeyMap.set(key, better);
+        }
+      };
+
       if (visitorIds.size > 0) {
-        journeys = journeys.concat(
-          await this.fetchJourneysInChunks(
-            Array.from(visitorIds),
-            ids => supabaseApi.getUserJourneysByVisitorIds(ids)
-          )
+        const journeysByVisitor = await this.fetchJourneysInChunks(
+          Array.from(visitorIds),
+          ids => supabaseApi.getUserJourneysByVisitorIds(ids)
         );
+
+        for (const journey of journeysByVisitor) {
+          if (!journey) continue;
+          mergeJourney(journey.visitor_id ?? undefined, journey as UserJourneyData);
+          mergeJourney(journey.session_id ?? undefined, journey as UserJourneyData);
+        }
       }
+
       if (sessionIds.size > 0) {
         const journeysBySession = await this.fetchJourneysInChunks(
           Array.from(sessionIds),
@@ -1178,21 +1241,9 @@ export class LocalSimulationService {
 
         for (const journey of journeysBySession) {
           if (!journey) continue;
-
-          if (journey.session_id) {
-            journeyMap.set(journey.session_id, journey);
-          }
-          if (journey.visitor_id) {
-            journeyMap.set(journey.visitor_id, journey);
-            visitorOnlyIds.delete(journey.visitor_id);
-          }
+          mergeJourney(journey.session_id ?? undefined, journey as UserJourneyData);
+          mergeJourney(journey.visitor_id ?? undefined, journey as UserJourneyData);
         }
-      }
-
-      const journeyMap = new Map<string, UserJourneyData>();
-      for (const j of journeys) {
-        const key = j?.visitor_id || j?.session_id;
-        if (key) journeyMap.set(key, j);
       }
 
       const result: SessionGroupWithJourney[] = [];
@@ -1205,23 +1256,61 @@ export class LocalSimulationService {
         );
 
         const primarySim = sims[0];
-        const journeyKey =
-          (primarySim.session_id && journeyMap.has(primarySim.session_id)
-            ? primarySim.session_id
-            : primarySim.visitor_id) || key;
-        const journey = journeyMap.get(journeyKey) || null;
+        const journey =
+          (primarySim.visitor_id
+            ? journeyMap.get(primarySim.visitor_id)
+            : undefined) ||
+          (primarySim.session_id
+            ? journeyMap.get(primarySim.session_id)
+            : undefined) ||
+          journeyMap.get(key) ||
+          null;
+
+        const pickSimulationValue = <K extends keyof SimulacaoData>(
+          field: K
+        ): SimulacaoData[K] | null => {
+          for (const simulation of sims) {
+            const value = simulation[field];
+            if (value === undefined || value === null) continue;
+            if (typeof value === 'string' && value.trim() === '') continue;
+            if (typeof value === 'number' && !Number.isFinite(value)) continue;
+            return value;
+          }
+          return null;
+        };
+
+        const resolvedUtmSource = journey?.utm_source ?? pickSimulationValue('utm_source');
+        const resolvedUtmMedium = journey?.utm_medium ?? pickSimulationValue('utm_medium');
+        const resolvedUtmCampaign = journey?.utm_campaign ?? pickSimulationValue('utm_campaign');
+        const resolvedUtmTerm = journey?.utm_term ?? pickSimulationValue('utm_term');
+        const resolvedUtmContent = journey?.utm_content ?? pickSimulationValue('utm_content');
+        const resolvedLandingPage =
+          journey?.landing_page ?? (pickSimulationValue('landing_page') as string | null);
+        const resolvedReferrer =
+          journey?.referrer ?? (pickSimulationValue('referrer') as string | null);
+        const resolvedTimeOnSite = (() => {
+          const journeyValue = journey?.time_on_site;
+          if (typeof journeyValue === 'number' && Number.isFinite(journeyValue)) {
+            return journeyValue;
+          }
+          const simulationValue = pickSimulationValue('time_on_site');
+          return typeof simulationValue === 'number' && Number.isFinite(simulationValue)
+            ? simulationValue
+            : null;
+        })();
 
         result.push({
           visitor_id: key,
           simulacoes: sims,
           total_simulacoes: sims.length,
-          utm_source: journey?.utm_source ?? null,
-          utm_medium: journey?.utm_medium ?? null,
-          utm_campaign: journey?.utm_campaign ?? null,
-          utm_term: journey?.utm_term ?? null,
-          utm_content: journey?.utm_content ?? null,
-          landing_page: journey?.landing_page ?? null,
-          referrer: journey?.referrer ?? null,
+          utm_source: (resolvedUtmSource as string | null) ?? null,
+          utm_medium: (resolvedUtmMedium as string | null) ?? null,
+          utm_campaign: (resolvedUtmCampaign as string | null) ?? null,
+          utm_term: (resolvedUtmTerm as string | null) ?? null,
+          utm_content: (resolvedUtmContent as string | null) ?? null,
+          landing_page: resolvedLandingPage ?? null,
+          referrer: resolvedReferrer ?? null,
+          time_on_site: resolvedTimeOnSite,
           journey_status: journey?.status ?? null,
           primary_session_id: primarySim.session_id ?? null
         });

@@ -25,6 +25,7 @@ import {
   supabaseApi,
   SimulacaoData,
   supabase,
+  UserJourneyData,
   UserJourneySimulacaoData,
   type Database
 } from '@/lib/supabase';
@@ -52,6 +53,7 @@ export interface SimulationInput {
   utmContent?: string | null;
   landingPage?: string | null;
   referrer?: string | null;
+  timeOnSite?: number | null;
 }
 
 export interface SimulationResult {
@@ -88,6 +90,7 @@ export interface ContactFormInput {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  time_on_site?: number | null;
 }
 
 export interface SessionGroupWithJourney {
@@ -101,9 +104,53 @@ export interface SessionGroupWithJourney {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  time_on_site?: number | null;
   journey_status?: string | null;
   primary_session_id?: string | null;
 }
+
+const countJourneySignals = (journey?: Partial<UserJourneyData> | null): number => {
+  if (!journey) return 0;
+  const trackedKeys: (keyof UserJourneyData)[] = [
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_term',
+    'utm_content',
+    'landing_page',
+    'referrer',
+    'time_on_site'
+  ];
+  return trackedKeys.reduce((count, key) => {
+    const value = journey[key];
+    if (value === undefined || value === null) {
+      return count;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+      return count;
+    }
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return count;
+    }
+    return count + 1;
+  }, 0);
+};
+
+const pickBetterJourney = (
+  current: UserJourneyData | undefined,
+  candidate: UserJourneyData | undefined
+): UserJourneyData | undefined => {
+  if (!candidate) {
+    return current;
+  }
+  if (!current) {
+    return candidate;
+  }
+
+  return countJourneySignals(candidate) >= countJourneySignals(current)
+    ? candidate
+    : current;
+};
 
 // Classe principal do serviço local
 export class LocalSimulationService {
@@ -265,6 +312,17 @@ export class LocalSimulationService {
             imovel_proprio: 'proprio',
             user_agent: input.userAgent || null,
             ip_address: input.ipAddress || null,
+            utm_source: input.utmSource ?? null,
+            utm_medium: input.utmMedium ?? null,
+            utm_campaign: input.utmCampaign ?? null,
+            utm_term: input.utmTerm ?? null,
+            utm_content: input.utmContent ?? null,
+            landing_page: input.landingPage ?? null,
+            referrer: input.referrer ?? null,
+            time_on_site:
+              typeof input.timeOnSite === 'number' && Number.isFinite(input.timeOnSite)
+                ? Math.max(0, Math.floor(input.timeOnSite))
+                : null,
             status: 'novo'
           };
 
@@ -330,6 +388,9 @@ export class LocalSimulationService {
           }
           if (input.landingPage !== undefined && input.landingPage !== null) {
             journeyUpdate.landing_page = input.landingPage;
+          }
+          if (typeof input.timeOnSite === 'number' && Number.isFinite(input.timeOnSite)) {
+            journeyUpdate.time_on_site = Math.max(0, Math.floor(input.timeOnSite));
           }
 
           const sanitizedJourneyUpdate = Object.fromEntries(
@@ -541,14 +602,44 @@ export class LocalSimulationService {
         try {
           if (input.simulationId) {
             // Validar e preparar dados para atualização
-            const updateData = {
+            const normalizedTimeOnSite =
+              typeof input.time_on_site === 'number' && Number.isFinite(input.time_on_site)
+                ? Math.max(0, Math.floor(input.time_on_site))
+                : undefined;
+
+            const updateData: Partial<SimulacaoData> = {
               nome_completo: input.nomeCompleto.trim(),
               email: input.email.trim().toLowerCase(),
               telefone: sanitizedPhone, // Limpar telefone
               imovel_proprio: input.imovelProprio as 'proprio' | 'terceiro', // Garantir tipo correto
               status: 'interessado', // Status após contato para compatibilidade com AdminDashboard
-              visitor_id: input.visitorId
+              visitor_id: input.visitorId ?? simulationData?.visitor_id ?? null
             };
+
+            if (input.utm_source !== undefined) {
+              updateData.utm_source = input.utm_source;
+            }
+            if (input.utm_medium !== undefined) {
+              updateData.utm_medium = input.utm_medium;
+            }
+            if (input.utm_campaign !== undefined) {
+              updateData.utm_campaign = input.utm_campaign;
+            }
+            if (input.utm_term !== undefined) {
+              updateData.utm_term = input.utm_term;
+            }
+            if (input.utm_content !== undefined) {
+              updateData.utm_content = input.utm_content;
+            }
+            if (input.landing_page !== undefined) {
+              updateData.landing_page = input.landing_page;
+            }
+            if (input.referrer !== undefined) {
+              updateData.referrer = input.referrer;
+            }
+            if (input.time_on_site !== undefined) {
+              updateData.time_on_site = normalizedTimeOnSite ?? null;
+            }
 
             journeyStatus = updateData.status || null;
 
@@ -634,6 +725,31 @@ export class LocalSimulationService {
                   throw new Error('Dados da simulação não encontrados no localStorage');
                 }
 
+                const fullInput: SimulationInput | undefined = localSimulation.fullInput;
+                const resolvedTimeOnSite =
+                  normalizedTimeOnSite ??
+                  (typeof fullInput?.timeOnSite === 'number' && Number.isFinite(fullInput.timeOnSite)
+                    ? Math.max(0, Math.floor(fullInput.timeOnSite))
+                    : simulationData?.time_on_site ?? null);
+
+                const resolvedUtmSource =
+                  updateData.utm_source ?? fullInput?.utmSource ?? simulationData?.utm_source ?? null;
+                const resolvedUtmMedium =
+                  updateData.utm_medium ?? fullInput?.utmMedium ?? simulationData?.utm_medium ?? null;
+                const resolvedUtmCampaign =
+                  updateData.utm_campaign ?? fullInput?.utmCampaign ?? simulationData?.utm_campaign ?? null;
+                const resolvedUtmTerm =
+                  updateData.utm_term ?? fullInput?.utmTerm ?? simulationData?.utm_term ?? null;
+                const resolvedUtmContent =
+                  updateData.utm_content ?? fullInput?.utmContent ?? simulationData?.utm_content ?? null;
+                const resolvedLandingPage =
+                  updateData.landing_page ??
+                  fullInput?.landingPage ??
+                  simulationData?.landing_page ??
+                  null;
+                const resolvedReferrer =
+                  updateData.referrer ?? fullInput?.referrer ?? simulationData?.referrer ?? null;
+
                 const createData = {
                   session_id: input.sessionId,
                   visitor_id: input.visitorId || null,
@@ -651,7 +767,15 @@ export class LocalSimulationService {
                   imovel_proprio: updateData.imovel_proprio,
                   user_agent: '',
                   ip_address: '',
-                  status: updateData.status
+                  status: updateData.status,
+                  utm_source: resolvedUtmSource,
+                  utm_medium: resolvedUtmMedium,
+                  utm_campaign: resolvedUtmCampaign,
+                  utm_term: resolvedUtmTerm,
+                  utm_content: resolvedUtmContent,
+                  landing_page: resolvedLandingPage,
+                  referrer: resolvedReferrer,
+                  time_on_site: resolvedTimeOnSite
                 };
 
                 console.log('💾 Criando nova simulação no Supabase:', createData);
@@ -877,6 +1001,17 @@ export class LocalSimulationService {
           input.referrer,
           existingJourney?.referrer
         );
+        const timeOnSiteValue =
+          typeof input.time_on_site === 'number' && Number.isFinite(input.time_on_site)
+            ? Math.max(0, Math.floor(input.time_on_site))
+            : input.time_on_site === null
+              ? null
+              : resolveNumber(
+                  undefined,
+                  fallbackSimulation?.time_on_site,
+                  simulationData?.time_on_site,
+                  existingJourney?.time_on_site
+                );
 
         const journeyUpdatePayload: Partial<UserJourneyData> = {
           nome_completo: normalizedNome,
@@ -898,6 +1033,10 @@ export class LocalSimulationService {
           landing_page: landingPageValue,
           referrer: referrerValue
         };
+
+        if (timeOnSiteValue !== undefined) {
+          journeyUpdatePayload.time_on_site = timeOnSiteValue;
+        }
 
         const sanitizedJourneyUpdatePayload = Object.fromEntries(
           Object.entries(journeyUpdatePayload).filter(([, value]) => value !== undefined)
@@ -924,6 +1063,7 @@ export class LocalSimulationService {
               existingJourney?.landing_page ??
               null,
             referrer: referrerValue ?? null,
+            time_on_site: timeOnSiteValue ?? null,
             ...sanitizedJourneyUpdatePayload
           };
 
@@ -1049,7 +1189,7 @@ export class LocalSimulationService {
 
       const grouped = new Map<string, SimulacaoData[]>();
       const sessionIds = new Set<string>();
-      const visitorOnlyIds = new Set<string>();
+      const visitorIds = new Set<string>();
 
       for (const sim of simulacoes) {
         const key = sim.visitor_id || sim.session_id;
@@ -1061,20 +1201,38 @@ export class LocalSimulationService {
 
         if (sim.session_id) {
           sessionIds.add(sim.session_id);
-        } else if (sim.visitor_id) {
-          visitorOnlyIds.add(sim.visitor_id);
+        }
+        if (sim.visitor_id) {
+          visitorIds.add(sim.visitor_id);
         }
       }
 
-      let journeys: UserJourneyData[] = [];
+      const journeyMap = new Map<string, UserJourneyData>();
+      const mergeJourney = (
+        key: string | null | undefined,
+        journey: UserJourneyData | null | undefined
+      ) => {
+        if (!key || !journey) return;
+        const current = journeyMap.get(key);
+        const better = pickBetterJourney(current, journey);
+        if (better) {
+          journeyMap.set(key, better);
+        }
+      };
+
       if (visitorIds.size > 0) {
-        journeys = journeys.concat(
-          await this.fetchJourneysInChunks(
-            Array.from(visitorIds),
-            ids => supabaseApi.getUserJourneysByVisitorIds(ids)
-          )
+        const journeysByVisitor = await this.fetchJourneysInChunks(
+          Array.from(visitorIds),
+          ids => supabaseApi.getUserJourneysByVisitorIds(ids)
         );
+
+        for (const journey of journeysByVisitor) {
+          if (!journey) continue;
+          mergeJourney(journey.visitor_id ?? undefined, journey as UserJourneyData);
+          mergeJourney(journey.session_id ?? undefined, journey as UserJourneyData);
+        }
       }
+
       if (sessionIds.size > 0) {
         const journeysBySession = await this.fetchJourneysInChunks(
           Array.from(sessionIds),
@@ -1083,21 +1241,9 @@ export class LocalSimulationService {
 
         for (const journey of journeysBySession) {
           if (!journey) continue;
-
-          if (journey.session_id) {
-            journeyMap.set(journey.session_id, journey);
-          }
-          if (journey.visitor_id) {
-            journeyMap.set(journey.visitor_id, journey);
-            visitorOnlyIds.delete(journey.visitor_id);
-          }
+          mergeJourney(journey.session_id ?? undefined, journey as UserJourneyData);
+          mergeJourney(journey.visitor_id ?? undefined, journey as UserJourneyData);
         }
-      }
-
-      const journeyMap = new Map<string, UserJourneyData>();
-      for (const j of journeys) {
-        const key = j?.visitor_id || j?.session_id;
-        if (key) journeyMap.set(key, j);
       }
 
       const result: SessionGroupWithJourney[] = [];
@@ -1110,23 +1256,61 @@ export class LocalSimulationService {
         );
 
         const primarySim = sims[0];
-        const journeyKey =
-          (primarySim.session_id && journeyMap.has(primarySim.session_id)
-            ? primarySim.session_id
-            : primarySim.visitor_id) || key;
-        const journey = journeyMap.get(journeyKey) || null;
+        const journey =
+          (primarySim.visitor_id
+            ? journeyMap.get(primarySim.visitor_id)
+            : undefined) ||
+          (primarySim.session_id
+            ? journeyMap.get(primarySim.session_id)
+            : undefined) ||
+          journeyMap.get(key) ||
+          null;
+
+        const pickSimulationValue = <K extends keyof SimulacaoData>(
+          field: K
+        ): SimulacaoData[K] | null => {
+          for (const simulation of sims) {
+            const value = simulation[field];
+            if (value === undefined || value === null) continue;
+            if (typeof value === 'string' && value.trim() === '') continue;
+            if (typeof value === 'number' && !Number.isFinite(value)) continue;
+            return value;
+          }
+          return null;
+        };
+
+        const resolvedUtmSource = journey?.utm_source ?? pickSimulationValue('utm_source');
+        const resolvedUtmMedium = journey?.utm_medium ?? pickSimulationValue('utm_medium');
+        const resolvedUtmCampaign = journey?.utm_campaign ?? pickSimulationValue('utm_campaign');
+        const resolvedUtmTerm = journey?.utm_term ?? pickSimulationValue('utm_term');
+        const resolvedUtmContent = journey?.utm_content ?? pickSimulationValue('utm_content');
+        const resolvedLandingPage =
+          journey?.landing_page ?? (pickSimulationValue('landing_page') as string | null);
+        const resolvedReferrer =
+          journey?.referrer ?? (pickSimulationValue('referrer') as string | null);
+        const resolvedTimeOnSite = (() => {
+          const journeyValue = journey?.time_on_site;
+          if (typeof journeyValue === 'number' && Number.isFinite(journeyValue)) {
+            return journeyValue;
+          }
+          const simulationValue = pickSimulationValue('time_on_site');
+          return typeof simulationValue === 'number' && Number.isFinite(simulationValue)
+            ? simulationValue
+            : null;
+        })();
 
         result.push({
           visitor_id: key,
           simulacoes: sims,
           total_simulacoes: sims.length,
-          utm_source: journey?.utm_source ?? null,
-          utm_medium: journey?.utm_medium ?? null,
-          utm_campaign: journey?.utm_campaign ?? null,
-          utm_term: journey?.utm_term ?? null,
-          utm_content: journey?.utm_content ?? null,
-          landing_page: journey?.landing_page ?? null,
-          referrer: journey?.referrer ?? null,
+          utm_source: (resolvedUtmSource as string | null) ?? null,
+          utm_medium: (resolvedUtmMedium as string | null) ?? null,
+          utm_campaign: (resolvedUtmCampaign as string | null) ?? null,
+          utm_term: (resolvedUtmTerm as string | null) ?? null,
+          utm_content: (resolvedUtmContent as string | null) ?? null,
+          landing_page: resolvedLandingPage ?? null,
+          referrer: resolvedReferrer ?? null,
+          time_on_site: resolvedTimeOnSite,
           journey_status: journey?.status ?? null,
           primary_session_id: primarySim.session_id ?? null
         });

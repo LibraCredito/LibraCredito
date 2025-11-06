@@ -47,6 +47,7 @@ export interface SimulationInput {
   utmContent?: string | null;
   landingPage?: string | null;
   referrer?: string | null;
+  timeOnSite?: number | null;
 }
 
 export interface SimulationResult {
@@ -128,6 +129,17 @@ export class SimulationService {
         parcela_inicial: processedResult.primeiraParcela,
         parcela_final: processedResult.ultimaParcela || processedResult.valor,
         imovel_proprio: 'proprio',
+        utm_source: input.utmSource ?? null,
+        utm_medium: input.utmMedium ?? null,
+        utm_campaign: input.utmCampaign ?? null,
+        utm_term: input.utmTerm ?? null,
+        utm_content: input.utmContent ?? null,
+        landing_page: input.landingPage ?? null,
+        referrer: input.referrer ?? null,
+        time_on_site:
+          typeof input.timeOnSite === 'number' && Number.isFinite(input.timeOnSite)
+            ? Math.max(0, Math.floor(input.timeOnSite))
+            : null,
         ip_address: input.ipAddress || null,
         user_agent: input.userAgent || null,
         status: 'novo'
@@ -175,6 +187,9 @@ export class SimulationService {
       }
       if (input.landingPage !== undefined && input.landingPage !== null) {
         journeyUpdate.landing_page = input.landingPage;
+      }
+      if (typeof input.timeOnSite === 'number' && Number.isFinite(input.timeOnSite)) {
+        journeyUpdate.time_on_site = Math.max(0, Math.floor(input.timeOnSite));
       }
 
       const sanitizedJourneyUpdate = Object.fromEntries(

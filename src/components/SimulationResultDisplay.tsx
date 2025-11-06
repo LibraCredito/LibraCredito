@@ -1,7 +1,10 @@
 import React, { Suspense, useState } from 'react';
-import { Calculator, CheckCircle, Users, Headphones } from 'lucide-react';
-const TrendingUp = React.lazy(() =>
-  import('lucide-react').then((m) => ({ default: m.TrendingUp }))
+import Calculator from 'lucide-react/dist/esm/icons/calculator';
+import CheckCircle from 'lucide-react/dist/esm/icons/check-circle';
+import Users from 'lucide-react/dist/esm/icons/users';
+import Headphones from 'lucide-react/dist/esm/icons/headphones';
+const TrendingUp = React.lazy(
+  () => import('lucide-react/dist/esm/icons/trending-up')
 );
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';

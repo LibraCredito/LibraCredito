@@ -12,6 +12,7 @@ import ImageOptimizer from '@/components/ImageOptimizer';
 // Lazy loading dos componentes pesados - com threshold otimizado
 const FAQ = lazy(() => import('@/components/FAQ'));
 const BlogSection = lazy(() => import('@/components/BlogSection'));
+const Footer = lazy(() => import('@/components/Footer'));
 
 interface LazySectionProps {
   load: () => Promise<{ default: React.ComponentType<unknown> }>;
@@ -175,7 +176,9 @@ const Index: React.FC = () => {
       </Suspense>
       </main>
 
-      <LazySection load={() => import('@/components/Footer')} />
+      <Suspense fallback={null}>
+        <Footer />
+      </Suspense>
     </div>
   );
 };

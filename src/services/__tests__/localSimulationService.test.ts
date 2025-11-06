@@ -133,21 +133,24 @@ describe('LocalSimulationService', () => {
       tipoAmortizacao: 'SAC',
       userAgent: 'jest',
       ipAddress: '127.0.0.1',
-      isRuralProperty: false
+      isRuralProperty: false,
+      timeOnSite: 245
     });
 
     expect(supabaseApiMock.createSimulacao).toHaveBeenCalledTimes(1);
     expect(supabaseApiMock.createSimulacao).toHaveBeenCalledWith(expect.objectContaining({
       nome_completo: 'Maria Silva',
       email: 'maria@example.com',
-      telefone: '11987654321'
+      telefone: '11987654321',
+      time_on_site: 245
     }));
     expect(supabaseApiMock.updateUserJourney).toHaveBeenCalledWith(
       'session-valid',
       expect.objectContaining({
         nome_completo: 'Maria Silva',
         email: 'maria@example.com',
-        telefone: '11987654321'
+        telefone: '11987654321',
+        time_on_site: 245
       })
     );
     expect(result.userJourneyId).toBe('supabase-123');
@@ -178,7 +181,8 @@ describe('LocalSimulationService', () => {
       utmTerm: 'simulacao',
       utmContent: 'banner',
       landingPage: 'https://libra.com.br/landing',
-      referrer: 'https://google.com'
+      referrer: 'https://google.com',
+      timeOnSite: 360
     });
 
     expect(supabaseApiMock.updateUserJourney).toHaveBeenCalledWith(
@@ -190,7 +194,8 @@ describe('LocalSimulationService', () => {
         utm_term: 'simulacao',
         utm_content: 'banner',
         landing_page: 'https://libra.com.br/landing',
-        referrer: 'https://google.com'
+        referrer: 'https://google.com',
+        time_on_site: 360
       })
     );
   });

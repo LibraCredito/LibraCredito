@@ -183,7 +183,11 @@ const SimulationForm: React.FC = () => {
         utmTerm: journey ? journey.utm_term ?? null : undefined,
         utmContent: journey ? journey.utm_content ?? null : undefined,
         landingPage: journey?.landing_page ?? fallbackLandingPage,
-        referrer: journey ? journey.referrer ?? null : fallbackReferrer
+        referrer: journey ? journey.referrer ?? null : fallbackReferrer,
+        timeOnSite:
+          typeof journey?.time_on_site === 'number'
+            ? Math.max(0, Math.floor(journey.time_on_site))
+            : undefined
       };
 
 

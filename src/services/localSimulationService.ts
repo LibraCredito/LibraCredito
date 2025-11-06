@@ -52,6 +52,7 @@ export interface SimulationInput {
   utmContent?: string | null;
   landingPage?: string | null;
   referrer?: string | null;
+  timeOnSite?: number | null;
 }
 
 export interface SimulationResult {
@@ -88,6 +89,7 @@ export interface ContactFormInput {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  time_on_site?: number | null;
 }
 
 export interface SessionGroupWithJourney {
@@ -265,6 +267,17 @@ export class LocalSimulationService {
             imovel_proprio: 'proprio',
             user_agent: input.userAgent || null,
             ip_address: input.ipAddress || null,
+            utm_source: input.utmSource ?? null,
+            utm_medium: input.utmMedium ?? null,
+            utm_campaign: input.utmCampaign ?? null,
+            utm_term: input.utmTerm ?? null,
+            utm_content: input.utmContent ?? null,
+            landing_page: input.landingPage ?? null,
+            referrer: input.referrer ?? null,
+            time_on_site:
+              typeof input.timeOnSite === 'number' && Number.isFinite(input.timeOnSite)
+                ? Math.max(0, Math.floor(input.timeOnSite))
+                : null,
             status: 'novo'
           };
 
@@ -330,6 +343,9 @@ export class LocalSimulationService {
           }
           if (input.landingPage !== undefined && input.landingPage !== null) {
             journeyUpdate.landing_page = input.landingPage;
+          }
+          if (typeof input.timeOnSite === 'number' && Number.isFinite(input.timeOnSite)) {
+            journeyUpdate.time_on_site = Math.max(0, Math.floor(input.timeOnSite));
           }
 
           const sanitizedJourneyUpdate = Object.fromEntries(
@@ -541,14 +557,44 @@ export class LocalSimulationService {
         try {
           if (input.simulationId) {
             // Validar e preparar dados para atualização
-            const updateData = {
+            const normalizedTimeOnSite =
+              typeof input.time_on_site === 'number' && Number.isFinite(input.time_on_site)
+                ? Math.max(0, Math.floor(input.time_on_site))
+                : undefined;
+
+            const updateData: Partial<SimulacaoData> = {
               nome_completo: input.nomeCompleto.trim(),
               email: input.email.trim().toLowerCase(),
               telefone: sanitizedPhone, // Limpar telefone
               imovel_proprio: input.imovelProprio as 'proprio' | 'terceiro', // Garantir tipo correto
               status: 'interessado', // Status após contato para compatibilidade com AdminDashboard
-              visitor_id: input.visitorId
+              visitor_id: input.visitorId ?? simulationData?.visitor_id ?? null
             };
+
+            if (input.utm_source !== undefined) {
+              updateData.utm_source = input.utm_source;
+            }
+            if (input.utm_medium !== undefined) {
+              updateData.utm_medium = input.utm_medium;
+            }
+            if (input.utm_campaign !== undefined) {
+              updateData.utm_campaign = input.utm_campaign;
+            }
+            if (input.utm_term !== undefined) {
+              updateData.utm_term = input.utm_term;
+            }
+            if (input.utm_content !== undefined) {
+              updateData.utm_content = input.utm_content;
+            }
+            if (input.landing_page !== undefined) {
+              updateData.landing_page = input.landing_page;
+            }
+            if (input.referrer !== undefined) {
+              updateData.referrer = input.referrer;
+            }
+            if (input.time_on_site !== undefined) {
+              updateData.time_on_site = normalizedTimeOnSite ?? null;
+            }
 
             journeyStatus = updateData.status || null;
 
@@ -634,6 +680,31 @@ export class LocalSimulationService {
                   throw new Error('Dados da simulação não encontrados no localStorage');
                 }
 
+                const fullInput: SimulationInput | undefined = localSimulation.fullInput;
+                const resolvedTimeOnSite =
+                  normalizedTimeOnSite ??
+                  (typeof fullInput?.timeOnSite === 'number' && Number.isFinite(fullInput.timeOnSite)
+                    ? Math.max(0, Math.floor(fullInput.timeOnSite))
+                    : simulationData?.time_on_site ?? null);
+
+                const resolvedUtmSource =
+                  updateData.utm_source ?? fullInput?.utmSource ?? simulationData?.utm_source ?? null;
+                const resolvedUtmMedium =
+                  updateData.utm_medium ?? fullInput?.utmMedium ?? simulationData?.utm_medium ?? null;
+                const resolvedUtmCampaign =
+                  updateData.utm_campaign ?? fullInput?.utmCampaign ?? simulationData?.utm_campaign ?? null;
+                const resolvedUtmTerm =
+                  updateData.utm_term ?? fullInput?.utmTerm ?? simulationData?.utm_term ?? null;
+                const resolvedUtmContent =
+                  updateData.utm_content ?? fullInput?.utmContent ?? simulationData?.utm_content ?? null;
+                const resolvedLandingPage =
+                  updateData.landing_page ??
+                  fullInput?.landingPage ??
+                  simulationData?.landing_page ??
+                  null;
+                const resolvedReferrer =
+                  updateData.referrer ?? fullInput?.referrer ?? simulationData?.referrer ?? null;
+
                 const createData = {
                   session_id: input.sessionId,
                   visitor_id: input.visitorId || null,
@@ -651,7 +722,15 @@ export class LocalSimulationService {
                   imovel_proprio: updateData.imovel_proprio,
                   user_agent: '',
                   ip_address: '',
-                  status: updateData.status
+                  status: updateData.status,
+                  utm_source: resolvedUtmSource,
+                  utm_medium: resolvedUtmMedium,
+                  utm_campaign: resolvedUtmCampaign,
+                  utm_term: resolvedUtmTerm,
+                  utm_content: resolvedUtmContent,
+                  landing_page: resolvedLandingPage,
+                  referrer: resolvedReferrer,
+                  time_on_site: resolvedTimeOnSite
                 };
 
                 console.log('💾 Criando nova simulação no Supabase:', createData);
@@ -877,6 +956,17 @@ export class LocalSimulationService {
           input.referrer,
           existingJourney?.referrer
         );
+        const timeOnSiteValue =
+          typeof input.time_on_site === 'number' && Number.isFinite(input.time_on_site)
+            ? Math.max(0, Math.floor(input.time_on_site))
+            : input.time_on_site === null
+              ? null
+              : resolveNumber(
+                  undefined,
+                  fallbackSimulation?.time_on_site,
+                  simulationData?.time_on_site,
+                  existingJourney?.time_on_site
+                );
 
         const journeyUpdatePayload: Partial<UserJourneyData> = {
           nome_completo: normalizedNome,
@@ -898,6 +988,10 @@ export class LocalSimulationService {
           landing_page: landingPageValue,
           referrer: referrerValue
         };
+
+        if (timeOnSiteValue !== undefined) {
+          journeyUpdatePayload.time_on_site = timeOnSiteValue;
+        }
 
         const sanitizedJourneyUpdatePayload = Object.fromEntries(
           Object.entries(journeyUpdatePayload).filter(([, value]) => value !== undefined)
@@ -924,6 +1018,7 @@ export class LocalSimulationService {
               existingJourney?.landing_page ??
               null,
             referrer: referrerValue ?? null,
+            time_on_site: timeOnSiteValue ?? null,
             ...sanitizedJourneyUpdatePayload
           };
 

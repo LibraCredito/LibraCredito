@@ -219,7 +219,11 @@ const ContactForm: React.FC<ContactFormProps> = ({
         utm_term: journey?.utm_term ?? null,
         utm_content: journey?.utm_content ?? null,
         landing_page: journey?.landing_page ?? null,
-        referrer: journey?.referrer ?? null
+        referrer: journey?.referrer ?? null,
+        time_on_site:
+          typeof journey?.time_on_site === 'number'
+            ? Math.max(0, Math.floor(journey.time_on_site))
+            : null
 
       });
 

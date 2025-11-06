@@ -53,6 +53,14 @@ export interface SimulacaoData {
   parcela_inicial?: number | null;
   parcela_final?: number | null;
   imovel_proprio?: 'proprio' | 'terceiro' | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
+  utm_content?: string | null;
+  landing_page?: string | null;
+  referrer?: string | null;
+  time_on_site?: number | null;
   ip_address?: string | null;
   user_agent?: string | null;
   status?: string | null;

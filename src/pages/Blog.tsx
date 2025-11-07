@@ -219,33 +219,33 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
 
           {/* Blog Posts */}
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl shadow-sm animate-pulse">
-                    <div className="aspect-video bg-gray-200 rounded-t-xl"></div>
-                    <div className="p-4">
-                      <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
-                      <div className="h-6 bg-gray-200 rounded w-full mb-3"></div>
-                      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
-                    <div className="flex justify-between">
-                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div key={i} className="bg-white rounded-lg shadow-sm animate-pulse">
+                    <div className="aspect-[4/3] bg-gray-200 rounded-t-lg"></div>
+                    <div className="p-3">
+                      <div className="h-3 bg-gray-200 rounded w-1/3 mb-2"></div>
+                      <div className="h-5 bg-gray-200 rounded w-full mb-3"></div>
+                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
+                      <div className="flex justify-between">
+                        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : filteredPosts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                ))}
+              </div>
+            ) : filteredPosts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {filteredPosts.map((post) => (
                   <Link
                     key={post.id}
                     to={`/blog/${post.slug}`}
-                    className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group"
+                    className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow group"
                   >
                     <article>
-                      <div className="aspect-video overflow-hidden rounded-t-xl bg-white">
+                      <div className="aspect-[4/3] overflow-hidden rounded-t-lg bg-white">
                         <img
                           src={post.imageUrl}
                           alt={post.metaTitle ?? post.title}
@@ -259,31 +259,31 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
                           }}
                         />
                       </div>
-                      <div className="p-4">
-                        <span className="text-sm text-libra-blue font-medium">
+                      <div className="p-3 space-y-2">
+                        <span className="text-xs sm:text-sm text-libra-blue font-semibold">
                           {CATEGORIES.find(cat => cat.id === post.category)?.name}
                         </span>
-                        <h3 className="text-lg font-bold text-libra-navy mt-2 mb-2 group-hover:text-libra-blue transition-colors">
+                        <h3 className="text-base sm:text-lg font-semibold text-libra-navy group-hover:text-libra-blue transition-colors line-clamp-2">
                           {post.metaTitle ?? post.title}
                         </h3>
-                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                        <p className="text-gray-600 text-xs sm:text-sm line-clamp-2">
                           {post.metaDescription ?? post.description}
                         </p>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>{new Date(post.createdAt || '').toLocaleDateString('pt-BR')}</span>
-                        <span>{post.readTime} min de leitura</span>
+                        <div className="flex items-center justify-between text-[11px] sm:text-xs text-gray-500">
+                          <span>{new Date(post.createdAt || '').toLocaleDateString('pt-BR')}</span>
+                          <span>{post.readTime} min de leitura</span>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-gray-500 text-lg mb-4">Nenhum post encontrado</div>
-              <p className="text-gray-400">Tente ajustar os filtros ou termo de busca</p>
-            </div>
-          )}
+                    </article>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-500 text-lg mb-4">Nenhum post encontrado</div>
+                <p className="text-gray-400">Tente ajustar os filtros ou termo de busca</p>
+              </div>
+            )}
         </div>
 
         {/* CTA Section */}

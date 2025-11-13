@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Search from 'lucide-react/dist/esm/icons/search';
 import TrendingUp from 'lucide-react/dist/esm/icons/trending-up';
@@ -84,8 +84,20 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
-  const [loading, setLoading] = useState(initialPosts.length === 0);
+  const resolvedInitialPosts = useMemo(() => {
+    if (initialPosts.length > 0) {
+      return initialPosts;
+    }
+
+    if (typeof window !== 'undefined' && Array.isArray(window.__INITIAL_DATA__?.posts)) {
+      return window.__INITIAL_DATA__?.posts ?? [];
+    }
+
+    return [];
+  }, [initialPosts]);
+
+  const [posts, setPosts] = useState<BlogPost[]>(resolvedInitialPosts);
+  const [loading, setLoading] = useState(resolvedInitialPosts.length === 0);
 
   const blogJsonLd = {
     '@context': 'https://schema.org',
@@ -108,12 +120,22 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
         setLoading(false);
       }
     };
-    if (initialPosts.length === 0) {
+    if (resolvedInitialPosts.length === 0) {
       loadPosts();
     } else {
       setLoading(false);
     }
-  }, [initialPosts]);
+  }, [initialPosts, resolvedInitialPosts.length]);
+
+  useEffect(() => {
+    setPosts(resolvedInitialPosts);
+  }, [resolvedInitialPosts]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__INITIAL_DATA__ = undefined;
+    }
+  }, []);
 
   const handleSimular = () => {
     navigate('/simulacao');
@@ -131,6 +153,7 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
       <Seo
         title="Blog | Libra Crédito | Artigos e Dicas Financeiras"
         description="Confira artigos e dicas sobre capital de giro, consolidação de dívidas e financiamento para reformas. Mantenha-se informado com o blog da Libra Crédito."
+        canonicalUrl="https://libracredito.com.br/blog"
         jsonLd={blogJsonLd}
         schemaId="blog-schema"
       />

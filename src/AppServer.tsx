@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toast';
 import { Analytics } from '@vercel/analytics/react';
 import type { BlogPost as BlogPostType } from '@/data/blogPosts';
 import LazyGlobalTracker from '@/components/LazyGlobalTracker';
+import { HelmetProvider, type FilledContext } from 'react-helmet-async';
 
 const TooltipProvider = lazy(() => import('@/components/ui/tooltip').then(m => ({ default: m.TooltipProvider })));
 
@@ -58,59 +59,65 @@ const queryClient = new QueryClient({
 
 interface InitialData { posts?: BlogPostType[]; post?: BlogPostType; }
 
-interface AppServerProps { url: string; initialData?: InitialData; }
+interface AppServerProps {
+  url: string;
+  initialData?: InitialData;
+  helmetContext?: FilledContext;
+}
 
-const AppServer: React.FC<AppServerProps> = ({ url, initialData = {} }) => {
+const AppServer: React.FC<AppServerProps> = ({ url, initialData = {}, helmetContext }) => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MobileProvider>
-        <StaticRouter location={url}>
-          {typeof window !== 'undefined' && <LazyGlobalTracker />}
-          <ScrollToTop />
-          <Suspense fallback={<Loading />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/vantagens" element={
-                <Suspense fallback={<Loading />}>
-                  <TooltipProvider><Vantagens /></TooltipProvider>
-                </Suspense>
-              } />
-              <Route path="/quem-somos" element={<QuemSomos />} />
-              <Route path="/blog" element={<Blog initialPosts={initialData.posts} />} />
-              <Route path="/blog/:slug" element={<BlogPost initialPost={initialData.post} />} />
-              <Route path="/parceiros" element={<Parceiros />} />
-              <Route path="/simulacao" element={
-                <Suspense fallback={<Loading />}>
-                  <TooltipProvider><Simulacao /></TooltipProvider>
-                </Suspense>
-              } />
-              <Route path="/simulacao/sapi" element={<SimulacaoSapi />} />
-              <Route path="/simulacao/local" element={<SimulacaoLocal />} />
-              <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
-              <Route path="/politica-cookies" element={<PoliticaCookies />} />
-              <Route path="/admin" element={
-                <Suspense fallback={<Loading />}>
-                  <TooltipProvider><AdminDashboard /></TooltipProvider>
-                </Suspense>
-              } />
-              <Route path="/test-supabase" element={<SupabaseTestPage />} />
-              <Route path="/test-webhook" element={<TestWebhook />} />
-              <Route path="/mobile-demo" element={<MobileDemo />} />
-              <Route path="/mobile-nav" element={<MobileNavDemo />} />
-              <Route path="/simulacao-wizard" element={<SimulacaoWizard />} />
-              <Route path="/wizard-test" element={<SimpleWizardTest />} />
-              <Route path="/confirmacao" element={<Confirmacao />} />
-              <Route path="/atendimento" element={<Atendimento />} />
-              <Route path="/sucesso" element={<Sucesso />} />
-              <Route path="/home2" element={<Home2 />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </StaticRouter>
-        <Toaster />
-        <Analytics />
-      </MobileProvider>
-    </QueryClientProvider>
+    <HelmetProvider context={helmetContext}>
+      <QueryClientProvider client={queryClient}>
+        <MobileProvider>
+          <StaticRouter location={url}>
+            {typeof window !== 'undefined' && <LazyGlobalTracker />}
+            <ScrollToTop />
+            <Suspense fallback={<Loading />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/vantagens" element={
+                  <Suspense fallback={<Loading />}>
+                    <TooltipProvider><Vantagens /></TooltipProvider>
+                  </Suspense>
+                } />
+                <Route path="/quem-somos" element={<QuemSomos />} />
+                <Route path="/blog" element={<Blog initialPosts={initialData.posts} />} />
+                <Route path="/blog/:slug" element={<BlogPost initialPost={initialData.post} />} />
+                <Route path="/parceiros" element={<Parceiros />} />
+                <Route path="/simulacao" element={
+                  <Suspense fallback={<Loading />}>
+                    <TooltipProvider><Simulacao /></TooltipProvider>
+                  </Suspense>
+                } />
+                <Route path="/simulacao/sapi" element={<SimulacaoSapi />} />
+                <Route path="/simulacao/local" element={<SimulacaoLocal />} />
+                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/politica-cookies" element={<PoliticaCookies />} />
+                <Route path="/admin" element={
+                  <Suspense fallback={<Loading />}>
+                    <TooltipProvider><AdminDashboard /></TooltipProvider>
+                  </Suspense>
+                } />
+                <Route path="/test-supabase" element={<SupabaseTestPage />} />
+                <Route path="/test-webhook" element={<TestWebhook />} />
+                <Route path="/mobile-demo" element={<MobileDemo />} />
+                <Route path="/mobile-nav" element={<MobileNavDemo />} />
+                <Route path="/simulacao-wizard" element={<SimulacaoWizard />} />
+                <Route path="/wizard-test" element={<SimpleWizardTest />} />
+                <Route path="/confirmacao" element={<Confirmacao />} />
+                <Route path="/atendimento" element={<Atendimento />} />
+                <Route path="/sucesso" element={<Sucesso />} />
+                <Route path="/home2" element={<Home2 />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </StaticRouter>
+          <Toaster />
+          <Analytics />
+        </MobileProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ArrowLeft from 'lucide-react/dist/esm/icons/arrow-left';
 import Clock from 'lucide-react/dist/esm/icons/clock';
@@ -17,8 +17,26 @@ interface BlogPostPageProps { initialPost?: BlogPost; }
 
 const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
   const { slug } = useParams<{ slug: string }>();
-  const [post, setPost] = useState<BlogPost | null>(initialPost || null);
-  const [loading, setLoading] = useState(!initialPost);
+  const resolvedInitialPost = useMemo(() => {
+    if (initialPost) {
+      return initialPost;
+    }
+
+    if (typeof window !== 'undefined' && window.__INITIAL_DATA__?.post) {
+      return window.__INITIAL_DATA__?.post ?? null;
+    }
+
+    return null;
+  }, [initialPost]);
+
+  const [post, setPost] = useState<BlogPost | null>(resolvedInitialPost);
+  const [loading, setLoading] = useState(!resolvedInitialPost);
+
+  useEffect(() => {
+    if (resolvedInitialPost) {
+      setPost(resolvedInitialPost);
+    }
+  }, [resolvedInitialPost]);
 
   useEffect(() => {
     const loadPost = async () => {
@@ -39,12 +57,18 @@ const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
       }
     };
 
-    if (!initialPost || !initialPost.content) {
+    if (!resolvedInitialPost || !resolvedInitialPost.content) {
       loadPost();
     } else {
       setLoading(false);
     }
-  }, [slug, initialPost]);
+  }, [slug, resolvedInitialPost]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__INITIAL_DATA__ = undefined;
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -84,7 +108,8 @@ const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
   const renderContent = (content: string) => renderMarkdown(content);
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://libracredito.com.br';
-  const postUrl = post ? `${origin}/blog/${post.slug}` : '';
+  const canonicalSlug = post?.slug ?? slug ?? '';
+  const postUrl = canonicalSlug ? `${origin}/blog/${canonicalSlug}` : `${origin}/blog`;
   const logoUrl = `${origin}/images/logos/logo-azul.png`;
   const datePublished = post?.createdAt ? new Date(post.createdAt).toISOString() : undefined;
   const dateModified = post?.updatedAt ? new Date(post.updatedAt).toISOString() : undefined;
@@ -95,6 +120,7 @@ const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
         <Seo
           title={`${post.metaTitle ?? post.title} | Blog Libra Crédito`}
           description={post.metaDescription ?? post.description}
+          canonicalUrl={postUrl}
           jsonLd={{
             '@context': 'https://schema.org',
             '@type': 'Article',

@@ -9,6 +9,14 @@
       "destination": "/images/$1"
     },
     {
+      "source": "/blog",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/blog/(.*)",
+      "destination": "/blog/$1/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

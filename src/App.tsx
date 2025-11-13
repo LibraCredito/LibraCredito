@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrollToTop from '@/components/ScrollToTop';
 import { MobileProvider } from '@/hooks/useMobileContext';
 import LazyGlobalTracker from '@/components/LazyGlobalTracker';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Lazy load TooltipProvider para LCP
 const TooltipProvider = lazy(() => import('@/components/ui/tooltip').then(m => ({ default: m.TooltipProvider })));
@@ -84,50 +85,52 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <MobileProvider>
-        <BrowserRouter>
-          <LazyGlobalTracker />
-          <ScrollToTop />
-          {typeof window !== 'undefined' && <LazyGlobalTracker />}
-          <Suspense fallback={<Loading />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/vantagens" element={
-                <Suspense fallback={<Loading />}>
-                  <TooltipProvider><Vantagens /></TooltipProvider>
-                </Suspense>
-              } />
-              <Route path="/quem-somos" element={<QuemSomos />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/parceiros" element={<Parceiros />} />
-              <Route path="/simulacao" element={
-                <Suspense fallback={<Loading />}>
-                  <TooltipProvider><Simulacao /></TooltipProvider>
-                </Suspense>
-              } />
-              <Route path="/simulacao/sapi" element={<SimulacaoSapi />} />
-              <Route path="/simulacao/local" element={<SimulacaoLocal />} />
-              <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
-              <Route path="/politica-cookies" element={<PoliticaCookies />} />
-              <Route path="/admin" element={
-                <Suspense fallback={<Loading />}>
-                  <TooltipProvider><AdminDashboard /></TooltipProvider>
-                </Suspense>
-              } />
-              {devRoutes}
-              <Route path="/confirmacao" element={<Confirmacao />} />
-              <Route path="/atendimento" element={<Atendimento />} />
-              <Route path="/sucesso" element={<Sucesso />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        <Toaster />
-        {AnalyticsComponent && <AnalyticsComponent />}
-      </MobileProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <MobileProvider>
+          <BrowserRouter>
+            <LazyGlobalTracker />
+            <ScrollToTop />
+            {typeof window !== 'undefined' && <LazyGlobalTracker />}
+            <Suspense fallback={<Loading />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/vantagens" element={
+                  <Suspense fallback={<Loading />}>
+                    <TooltipProvider><Vantagens /></TooltipProvider>
+                  </Suspense>
+                } />
+                <Route path="/quem-somos" element={<QuemSomos />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogPost />} />
+                <Route path="/parceiros" element={<Parceiros />} />
+                <Route path="/simulacao" element={
+                  <Suspense fallback={<Loading />}>
+                    <TooltipProvider><Simulacao /></TooltipProvider>
+                  </Suspense>
+                } />
+                <Route path="/simulacao/sapi" element={<SimulacaoSapi />} />
+                <Route path="/simulacao/local" element={<SimulacaoLocal />} />
+                <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+                <Route path="/politica-cookies" element={<PoliticaCookies />} />
+                <Route path="/admin" element={
+                  <Suspense fallback={<Loading />}>
+                    <TooltipProvider><AdminDashboard /></TooltipProvider>
+                  </Suspense>
+                } />
+                {devRoutes}
+                <Route path="/confirmacao" element={<Confirmacao />} />
+                <Route path="/atendimento" element={<Atendimento />} />
+                <Route path="/sucesso" element={<Sucesso />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+          <Toaster />
+          {AnalyticsComponent && <AnalyticsComponent />}
+        </MobileProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 };
 

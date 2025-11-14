@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Helmet } from 'react-helmet-async';
 
 /**
  * Props for the {@link Seo} component used to manage page-level metadata.
@@ -32,94 +33,36 @@ const Seo: React.FC<SeoProps> = ({
   jsonLd,
   schemaId,
 }) => {
-  useEffect(() => {
-    if (title) {
-      document.title = title;
-    }
+  const openGraphEntries = Object.entries(openGraph ?? {}).filter(([, value]) => Boolean(value));
+  const twitterEntries = Object.entries(twitter ?? {}).filter(([, value]) => Boolean(value));
 
-    if (description) {
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute('content', description);
-      }
-    }
+  const jsonLdContent = jsonLd ? JSON.stringify(jsonLd).replace(/</g, '\\u003c') : null;
 
-    if (canonicalUrl) {
-      let link = document.querySelector(
-        "link[rel='canonical']"
-      ) as HTMLLinkElement | null;
-      if (!link) {
-        link = document.createElement('link');
-        link.setAttribute('rel', 'canonical');
-        document.head.appendChild(link);
-      }
-      link.setAttribute('href', canonicalUrl);
-    }
+  return (
+    <Helmet>
+      {title && <title>{title}</title>}
+      {description && <meta name="description" content={description} />}
+      {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 
-    if (openGraph) {
-      Object.entries(openGraph).forEach(([key, value]) => {
-        if (!value) return;
-        const property = `og:${key}`;
-        let meta = document.querySelector(
-          `meta[property='${property}']`
-        ) as HTMLMetaElement | null;
-        if (!meta) {
-          meta = document.createElement('meta');
-          meta.setAttribute('property', property);
-          document.head.appendChild(meta);
-        }
-        meta.setAttribute('content', value);
-      });
-    }
+      {openGraphEntries.map(([key, value]) => (
+        <meta key={`og:${key}`} property={`og:${key}`} content={value} />
+      ))}
 
-    if (twitter) {
-      Object.entries(twitter).forEach(([key, value]) => {
-        if (!value) return;
-        const name = `twitter:${key}`;
-        let meta = document.querySelector(
-          `meta[name='${name}']`
-        ) as HTMLMetaElement | null;
-        if (!meta) {
-          meta = document.createElement('meta');
-          meta.setAttribute('name', name);
-          document.head.appendChild(meta);
-        }
-        meta.setAttribute('content', value);
-      });
-    }
+      {twitterEntries.map(([key, value]) => (
+        <meta key={`twitter:${key}`} name={`twitter:${key}`} content={value} />
+      ))}
 
-    let script: HTMLScriptElement | null = null;
-    const id = schemaId || 'json-ld-schema';
-
-    if (jsonLd) {
-      const existing = document.getElementById(id);
-      if (existing) {
-        existing.remove();
-      }
-      script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.id = id;
-      script.textContent = JSON.stringify(jsonLd);
-      document.head.appendChild(script);
-    }
-
-    return () => {
-      const existing = document.getElementById(id);
-      if (existing) {
-        existing.remove();
-      }
-    };
-  }, [
-    title,
-    description,
-    canonicalUrl,
-    openGraph,
-    twitter,
-    jsonLd,
-    schemaId,
-  ]);
-
-  return null;
+      {jsonLdContent && (
+        <script
+          type="application/ld+json"
+          id={schemaId}
+          key={schemaId ?? 'json-ld'}
+        >
+          {jsonLdContent}
+        </script>
+      )}
+    </Helmet>
+  );
 };
 
 export default Seo;

@@ -181,11 +181,17 @@ function injectInitialData(html: string, data: any) {
   }
 
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
-  const scriptTag = `<script>window.__INITIAL_DATA__ = ${serialized};</script>`;
-  const mainEntryTag = '<script type="module" src="/src/main.tsx" defer></script>';
+  const scriptTag = `<script id="__INITIAL_DATA__">window.__INITIAL_DATA__ = ${serialized};</script>`;
 
-  if (html.includes(mainEntryTag)) {
-    return html.replace(mainEntryTag, `${scriptTag}\n    ${mainEntryTag}`);
+  const moduleScriptIndex = html.indexOf('<script type="module"');
+  if (moduleScriptIndex !== -1) {
+    return `${html.slice(0, moduleScriptIndex)}${scriptTag}\n    ${html.slice(moduleScriptIndex)}`;
+  }
+
+  const firstScriptIndex = html.indexOf('<script');
+  if (firstScriptIndex !== -1) {
+    return `${html.slice(0, firstScriptIndex)}${scriptTag}\n    ${html.slice(firstScriptIndex)}`;
+
   }
 
   return html.replace('</body>', `${scriptTag}\n</body>`);

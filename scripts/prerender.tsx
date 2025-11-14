@@ -191,6 +191,7 @@ function injectInitialData(html: string, data: any) {
   const firstScriptIndex = html.indexOf('<script');
   if (firstScriptIndex !== -1) {
     return `${html.slice(0, firstScriptIndex)}${scriptTag}\n    ${html.slice(firstScriptIndex)}`;
+
   }
 
   return html.replace('</body>', `${scriptTag}\n</body>`);

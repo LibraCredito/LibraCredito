@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS public.blog_posts (
     read_time INTEGER DEFAULT 5,
     published BOOLEAN DEFAULT false,
     featured_post BOOLEAN DEFAULT false,
+    scheduled_at TIMESTAMPTZ DEFAULT NOW(),
+    published_at TIMESTAMPTZ,
     meta_title TEXT,
     meta_description TEXT,
     tags TEXT[], -- Array de strings
@@ -136,6 +138,7 @@ CREATE INDEX IF NOT EXISTS idx_blog_posts_category ON public.blog_posts(category
 CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON public.blog_posts(slug);
 CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON public.blog_posts(published) WHERE published = true;
 CREATE INDEX IF NOT EXISTS idx_blog_posts_featured ON public.blog_posts(featured_post) WHERE featured_post = true;
+CREATE INDEX IF NOT EXISTS idx_blog_posts_scheduled_at ON public.blog_posts(scheduled_at DESC);
 CREATE INDEX IF NOT EXISTS idx_blog_posts_created_at ON public.blog_posts(created_at DESC);
 
 -- Parceiros

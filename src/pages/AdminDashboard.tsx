@@ -125,6 +125,8 @@ const AdminDashboard: React.FC = () => {
     em_analise: 0
   });
 
+  const SIMULACOES_LIMIT = 100;
+
   // Verificar autenticação ao carregar
   useEffect(() => {
     const checkAuth = async () => {
@@ -336,7 +338,7 @@ const AdminDashboard: React.FC = () => {
     setLoading(true);
     try {
       const data = await LocalSimulationService.getSimulacoesAgrupadas({
-        limit: 1000,
+        limit: SIMULACOES_LIMIT,
         status: filtroStatus !== 'todos' ? filtroStatus : undefined,
         searchTerm: filtroNome.trim() ? filtroNome : undefined
       });

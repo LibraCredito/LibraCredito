@@ -18,6 +18,8 @@ export interface BlogPost {
   readTime: number;
   published: boolean;
   featuredPost: boolean;
+  scheduledAt?: string;
+  publishedAt?: string;
   metaTitle?: string;
   metaDescription?: string;
   tags?: string[];
@@ -162,6 +164,8 @@ const EXISTING_POSTS: BlogPost[] = [
     readTime: 8,
     published: true,
     featuredPost: true,
+    scheduledAt: '2024-03-25T00:00:00.000Z',
+    publishedAt: '2024-03-25T00:00:00.000Z',
     createdAt: '2024-03-25T00:00:00.000Z',
     updatedAt: '2024-03-25T00:00:00.000Z'
   },
@@ -216,6 +220,8 @@ const EXISTING_POSTS: BlogPost[] = [
     readTime: 12,
     published: true,
     featuredPost: false,
+    scheduledAt: '2024-03-24T00:00:00.000Z',
+    publishedAt: '2024-03-24T00:00:00.000Z',
     createdAt: '2024-03-24T00:00:00.000Z',
     updatedAt: '2024-03-24T00:00:00.000Z'
   },
@@ -257,6 +263,8 @@ const EXISTING_POSTS: BlogPost[] = [
     readTime: 10,
     published: true,
     featuredPost: false,
+    scheduledAt: '2024-03-23T00:00:00.000Z',
+    publishedAt: '2024-03-23T00:00:00.000Z',
     createdAt: '2024-03-23T00:00:00.000Z',
     updatedAt: '2024-03-23T00:00:00.000Z'
   },
@@ -280,6 +288,8 @@ const EXISTING_POSTS: BlogPost[] = [
     readTime: 5,
     published: true,
     featuredPost: false,
+    scheduledAt: '2024-03-22T00:00:00.000Z',
+    publishedAt: '2024-03-22T00:00:00.000Z',
     createdAt: '2024-03-22T00:00:00.000Z',
     updatedAt: '2024-03-22T00:00:00.000Z'
   },
@@ -300,6 +310,8 @@ const EXISTING_POSTS: BlogPost[] = [
     readTime: 8,
     published: true,
     featuredPost: false,
+    scheduledAt: '2024-03-21T00:00:00.000Z',
+    publishedAt: '2024-03-21T00:00:00.000Z',
     createdAt: '2024-03-21T00:00:00.000Z',
     updatedAt: '2024-03-21T00:00:00.000Z'
   },
@@ -423,6 +435,8 @@ const EXISTING_POSTS: BlogPost[] = [
     readTime: 15,
     published: true,
     featuredPost: true,
+    scheduledAt: '2024-04-22T00:00:00.000Z',
+    publishedAt: '2024-04-22T00:00:00.000Z',
     createdAt: '2024-04-22T00:00:00.000Z',
     updatedAt: '2024-04-22T00:00:00.000Z'
   }
@@ -470,6 +484,8 @@ export class BlogService {
       readTime: supabasePost.read_time || 5,
       published: supabasePost.published,
       featuredPost: supabasePost.featured_post,
+      scheduledAt: supabasePost.scheduled_at || supabasePost.published_at || supabasePost.created_at,
+      publishedAt: supabasePost.published_at || undefined,
       metaTitle: supabasePost.meta_title,
       metaDescription: supabasePost.meta_description,
       tags: supabasePost.tags,
@@ -482,6 +498,9 @@ export class BlogService {
    * Converter BlogPost para formato Supabase
    */
   static convertBlogPostToSupabase(post: BlogPost): Omit<BlogPostData, 'id' | 'created_at' | 'updated_at'> {
+    const scheduledAt = post.scheduledAt || post.createdAt || new Date().toISOString();
+    const shouldMarkPublished = post.published && new Date(scheduledAt).getTime() <= Date.now();
+
     return {
       title: post.title,
       description: post.description,
@@ -490,12 +509,26 @@ export class BlogService {
       image_url: post.imageUrl,
       slug: post.slug,
       read_time: post.readTime,
-      published: post.published,
-      featured_post: post.featuredPost,
+      published: post.published ?? false,
+      featured_post: post.featuredPost ?? false,
+      scheduled_at: scheduledAt,
+      published_at: shouldMarkPublished ? post.publishedAt || scheduledAt : post.publishedAt || null,
       meta_title: post.metaTitle,
       meta_description: post.metaDescription,
       tags: post.tags
     };
+  }
+
+  static getScheduledDate(post: BlogPost): Date {
+    return new Date(post.scheduledAt || post.createdAt || new Date().toISOString());
+  }
+
+  static isPostPublished(post: BlogPost, referenceDate: Date = new Date()): boolean {
+    return post.published && this.getScheduledDate(post).getTime() <= referenceDate.getTime();
+  }
+
+  static isPostScheduled(post: BlogPost, referenceDate: Date = new Date()): boolean {
+    return post.published && this.getScheduledDate(post).getTime() > referenceDate.getTime();
   }
 
   /**
@@ -776,6 +809,8 @@ export class BlogService {
         id: `local-${Date.now()}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        scheduledAt: postData.scheduledAt || new Date().toISOString(),
+        publishedAt: postData.published ? postData.publishedAt || new Date().toISOString() : undefined,
         readTime: postData.readTime || this.calculateReadTime(postData.content)
       };
 
@@ -893,7 +928,7 @@ export class BlogService {
    */
   static async getPostsByCategory(category: BlogCategory): Promise<BlogPost[]> {
     const posts = await this.getAllPosts();
-    return posts.filter(post => post.category === category && post.published);
+    return posts.filter(post => post.category === category && this.isPostPublished(post));
   }
 
   /**
@@ -901,9 +936,9 @@ export class BlogService {
    */
   static async getPublishedPosts(): Promise<BlogPost[]> {
     const posts = await this.getAllPosts();
-    return posts.filter(post => post.published).sort((a, b) => 
-      new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
-    );
+    return posts
+      .filter(post => this.isPostPublished(post))
+      .sort((a, b) => this.getScheduledDate(b).getTime() - this.getScheduledDate(a).getTime());
   }
 
   /**
@@ -911,7 +946,7 @@ export class BlogService {
    */
   static async getFeaturedPosts(): Promise<BlogPost[]> {
     const posts = await this.getAllPosts();
-    return posts.filter(post => post.published && post.featuredPost);
+    return posts.filter(post => this.isPostPublished(post) && post.featuredPost);
   }
 
   /**
@@ -1007,9 +1042,10 @@ export class BlogService {
    */
   static async getBlogStats() {
     const posts = await this.getAllPosts();
-    const published = posts.filter(p => p.published);
+    const published = posts.filter(p => this.isPostPublished(p));
+    const scheduled = posts.filter(p => this.isPostScheduled(p));
     const drafts = posts.filter(p => !p.published);
-    const featured = posts.filter(p => p.featuredPost && p.published);
+    const featured = posts.filter(p => p.featuredPost && this.isPostPublished(p));
     
     const categoryCounts = BLOG_CATEGORIES.map(cat => ({
       category: cat.name,
@@ -1019,6 +1055,7 @@ export class BlogService {
     return {
       total: posts.length,
       published: published.length,
+      scheduled: scheduled.length,
       drafts: drafts.length,
       featured: featured.length,
       categoryCounts

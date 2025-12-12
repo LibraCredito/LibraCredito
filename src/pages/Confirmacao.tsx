@@ -39,7 +39,10 @@ const Confirmacao = () => {
     }
 
     const scrollToTop = () => {
-      topAnchorRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      const anchor = topAnchorRef.current;
+      if (anchor && typeof anchor.scrollIntoView === 'function') {
+        anchor.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }
     };
 
     // Reforça o reset de scroll em diferentes ciclos de renderização

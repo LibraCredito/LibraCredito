@@ -120,6 +120,8 @@ const AdminDashboard: React.FC = () => {
     em_analise: 0
   });
 
+  const SIMULACOES_LIMIT = 100;
+
   // Verificar autenticação ao carregar
   useEffect(() => {
     const checkAuth = async () => {
@@ -211,6 +213,13 @@ const AdminDashboard: React.FC = () => {
     return text.trim().split(' ').filter(word => word.length > 0).length;
   };
 
+  const formatDateTimeLocal = (value?: string) => {
+    if (!value) return '';
+    const date = new Date(value);
+    const pad = (num: number) => String(num).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
 
 
   // Função para inserir texto no editor
@@ -240,20 +249,37 @@ const AdminDashboard: React.FC = () => {
       alert('Preencha todos os campos obrigatórios');
       return;
     }
-    
+
+    const now = new Date();
+    const scheduledDate = postForm.scheduledAt ? new Date(postForm.scheduledAt) : now;
+    const isAlreadyPublished = editingPost?.published ?? false;
+
+    if (scheduledDate.getTime() < now.getTime() && !isAlreadyPublished) {
+      alert('A data/hora de publicação não pode ser no passado');
+      return;
+    }
+
+    const slug = postForm.slug?.trim() || BlogService.generateSlug(postForm.title);
+    const published = postForm.published ?? false;
+    const featuredPost = postForm.featuredPost ?? false;
+
+    const payload: BlogPost = {
+      ...postForm,
+      slug,
+      published,
+      featuredPost,
+      scheduledAt: scheduledDate.toISOString(),
+      readTime: postForm.readTime || BlogService.calculateReadTime(postForm.content || '')
+    };
+
+    const isPublishedNow = BlogService.isPostPublished(payload, now);
+    payload.publishedAt = published && isPublishedNow ? postForm.publishedAt || now.toISOString() : postForm.publishedAt;
+
     try {
-      if (!postForm.slug) {
-        postForm.slug = BlogService.generateSlug(postForm.title);
-      }
-      
       if (editingPost?.id) {
-        await BlogService.updatePost(editingPost.id, postForm);
+        await BlogService.updatePost(editingPost.id, payload);
       } else {
-        await BlogService.createPost({
-          ...postForm,
-          published: true,
-          featuredPost: false
-        } as BlogPost);
+        await BlogService.createPost(payload);
       }
       
       await loadBlogPosts();
@@ -331,7 +357,7 @@ const AdminDashboard: React.FC = () => {
     setLoading(true);
     try {
       const data = await LocalSimulationService.getSimulacoesAgrupadas({
-        limit: 1000,
+        limit: SIMULACOES_LIMIT,
         status: filtroStatus !== 'todos' ? filtroStatus : undefined,
         searchTerm: filtroNome.trim() ? filtroNome : undefined
       });
@@ -430,20 +456,31 @@ const AdminDashboard: React.FC = () => {
   
   const getFilteredBlogPosts = () => {
     return blogPosts.filter(post => {
-      const matchStatus = 
+      const now = new Date();
+      const isPublished = BlogService.isPostPublished(post, now);
+      const isScheduled = BlogService.isPostScheduled(post, now);
+      const matchStatus =
         filtroStatusBlog === 'todos' ||
-        (filtroStatusBlog === 'published' && post.published && !post.featuredPost) ||
+        (filtroStatusBlog === 'published' && isPublished && !post.featuredPost) ||
+        (filtroStatusBlog === 'scheduled' && isScheduled) ||
         (filtroStatusBlog === 'draft' && !post.published) ||
-        (filtroStatusBlog === 'featured' && post.featuredPost && post.published) ||
-        (filtroStatusBlog === 'featured_draft' && post.featuredPost && !post.published);
+        (filtroStatusBlog === 'featured' && post.featuredPost && isPublished) ||
+        (filtroStatusBlog === 'featured_scheduled' && post.featuredPost && isScheduled);
       
       const matchTitle = !filtroTituloBlog || 
         post.title.toLowerCase().includes(filtroTituloBlog.toLowerCase()) ||
         post.description.toLowerCase().includes(filtroTituloBlog.toLowerCase());
-      
+
       return matchStatus && matchTitle;
     });
   };
+
+  const now = new Date();
+  const publishedBlogPosts = blogPosts.filter(post => BlogService.isPostPublished(post, now));
+  const scheduledBlogPosts = blogPosts.filter(post => BlogService.isPostScheduled(post, now));
+  const draftBlogPosts = blogPosts.filter(post => !post.published);
+  const featuredPublishedPosts = blogPosts.filter(post => post.featuredPost && BlogService.isPostPublished(post, now));
+  const featuredScheduledPosts = blogPosts.filter(post => post.featuredPost && BlogService.isPostScheduled(post, now));
   
   const exportParceirosToCsv = () => {
     const filteredData = getFilteredParceiros();
@@ -892,13 +929,17 @@ const AdminDashboard: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">Gerenciar Blog</h2>
               <p className="text-gray-600">Criar, editar e gerenciar posts do blog</p>
             </div>
-            <Button 
-              onClick={() => {
-                setEditingPost(null);
-                setPostForm({});
-                setShowPostEditor(true);
-              }}
-              className="bg-libra-blue hover:bg-libra-blue/90 text-white"
+              <Button
+                onClick={() => {
+                  setEditingPost(null);
+                  setPostForm({
+                    published: true,
+                    featuredPost: false,
+                    scheduledAt: new Date().toISOString()
+                  });
+                  setShowPostEditor(true);
+                }}
+                className="bg-libra-blue hover:bg-libra-blue/90 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Novo Post
@@ -994,9 +1035,24 @@ const AdminDashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Data e hora de publicação</label>
+                      <Input
+                        type="datetime-local"
+                        min={formatDateTimeLocal(new Date().toISOString())}
+                        value={formatDateTimeLocal(postForm.scheduledAt)}
+                        onChange={(e) => setPostForm({
+                          ...postForm,
+                          scheduledAt: e.target.value ? new Date(e.target.value).toISOString() : undefined
+                        })}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Defina quando o post deve ser publicado. Datas passadas não são permitidas para novos agendamentos.
+                      </p>
+                    </div>
                     <div className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         id="published"
                         checked={postForm.published || false}
                         onChange={(e) => setPostForm({...postForm, published: e.target.checked})}
@@ -1237,8 +1293,10 @@ Escreva seu conteúdo aqui...
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
                       <SelectItem value="published">Publicados</SelectItem>
+                      <SelectItem value="scheduled">Agendados</SelectItem>
                       <SelectItem value="draft">Rascunhos</SelectItem>
                       <SelectItem value="featured">Em Destaque</SelectItem>
+                      <SelectItem value="featured_scheduled">Destaques Agendados</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -1260,90 +1318,109 @@ Escreva seu conteúdo aqui...
                     </div>
                   </div>
                 ) : getFilteredBlogPosts().length > 0 ? (
-                  getFilteredBlogPosts().map((post) => (
-                    <div key={post.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4 flex-1">
-                          <img
-                            src={post.imageUrl}
-                            alt={post.title}
-                            className="w-20 h-20 object-cover rounded-lg border"
-                            width={80}
-                            height={80}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://placehold.co/80x80?text=Image';
-                            }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-lg text-gray-900 truncate">
-                                  {post.title}
-                                </h3>
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                  {post.description}
-                                </p>
-                                <div className="flex items-center gap-4 mt-2">
-                                  <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
-                                    {post.category}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    📖 {post.readTime} min
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    🕒 {post.createdAt ? new Date(post.createdAt).toLocaleDateString('pt-BR') : 'Data não informada'}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Badge 
-                                    variant={post.published ? "default" : "secondary"}
-                                    className="text-xs"
-                                  >
-                                    {post.published ? '✅ Publicado' : '📝 Rascunho'}
-                                  </Badge>
-                                  {post.featuredPost && (
-                                    <Badge variant="outline" className="text-xs">
-                                      ⭐ Destaque
+                  getFilteredBlogPosts().map((post) => {
+                    const isScheduled = BlogService.isPostScheduled(post, now);
+                    const isPublishedPost = BlogService.isPostPublished(post, now);
+                    const scheduledDate = BlogService.getScheduledDate(post);
+
+                    return (
+                      <div key={post.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-4 flex-1">
+                            <img
+                              src={post.imageUrl}
+                              alt={post.title}
+                              className="w-20 h-20 object-cover rounded-lg border"
+                              width={80}
+                              height={80}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://placehold.co/80x80?text=Image';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-lg text-gray-900 truncate">
+                                    {post.title}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                    {post.description}
+                                  </p>
+                                  <div className="flex items-center gap-4 mt-2 flex-wrap">
+                                    <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
+                                      {post.category}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      📖 {post.readTime} min
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      🕒 {post.createdAt ? new Date(post.createdAt).toLocaleDateString('pt-BR') : 'Data não informada'}
+                                    </span>
+                                    {isScheduled && (
+                                      <span className="text-xs text-blue-600">
+                                        Agendado para {scheduledDate.toLocaleString('pt-BR')}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                    <Badge
+                                      variant={isPublishedPost ? "default" : isScheduled ? "outline" : "secondary"}
+                                      className="text-xs"
+                                    >
+                                      {isPublishedPost ? '✅ Publicado' : isScheduled ? '⏳ Agendado' : '📝 Rascunho'}
                                     </Badge>
-                                  )}
+                                    {isPublishedPost && post.publishedAt && (
+                                      <Badge variant="outline" className="text-xs">
+                                        Publicado em {new Date(post.publishedAt).toLocaleDateString('pt-BR')}
+                                      </Badge>
+                                    )}
+                                    {post.featuredPost && (
+                                      <Badge variant="outline" className="text-xs">
+                                        ⭐ Destaque
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col gap-1 ml-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setEditingPost(post);
-                              setPostForm(post);
-                              setShowPostEditor(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Editar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => window.open('/blog/' + post.slug, '_blank')}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Ver
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeletePost(post.id!)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Excluir
-                          </Button>
+                          <div className="flex flex-col gap-1 ml-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingPost(post);
+                                setPostForm({
+                                  ...post,
+                                  scheduledAt: post.scheduledAt || post.createdAt || new Date().toISOString()
+                                });
+                                setShowPostEditor(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open('/blog/' + post.slug, '_blank')}
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Ver
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeletePost(post.id!)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Excluir
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-12">
                     <div className="text-gray-400 mb-4">
@@ -1358,10 +1435,14 @@ Escreva seu conteúdo aqui...
                         : 'Tente ajustar os filtros ou crie um novo post.'
                       }
                     </p>
-                    <Button 
+                    <Button
                       onClick={() => {
                         setEditingPost(null);
-                        setPostForm({});
+                        setPostForm({
+                          published: true,
+                          featuredPost: false,
+                          scheduledAt: new Date().toISOString()
+                        });
                         setShowPostEditor(true);
                       }}
                       className="bg-libra-blue hover:bg-libra-blue/90 text-white"
@@ -1374,7 +1455,7 @@ Escreva seu conteúdo aqui...
 
                 {getFilteredBlogPosts().length > 0 && (
                   <div className="mt-8 pt-4 border-t">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-gray-900">
                           {blogPosts.length}
@@ -1383,21 +1464,33 @@ Escreva seu conteúdo aqui...
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-green-600">
-                          {blogPosts.filter(p => p.published).length}
+                          {publishedBlogPosts.length}
                         </div>
-                        <div className="text-sm text-gray-500">Publicados</div>
+                        <div className="text-sm text-gray-500">Publicados (ativos)</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {scheduledBlogPosts.length}
+                        </div>
+                        <div className="text-sm text-gray-500">Agendados</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-yellow-600">
-                          {blogPosts.filter(p => !p.published).length}
+                          {draftBlogPosts.length}
                         </div>
                         <div className="text-sm text-gray-500">Rascunhos</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">
-                          {blogPosts.filter(p => p.featuredPost).length}
+                        <div className="text-2xl font-bold text-purple-600">
+                          {featuredPublishedPosts.length}
                         </div>
-                        <div className="text-sm text-gray-500">Em Destaque</div>
+                        <div className="text-sm text-gray-500">Destaques Publicados</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-indigo-600">
+                          {featuredScheduledPosts.length}
+                        </div>
+                        <div className="text-sm text-gray-500">Destaques Agendados</div>
                       </div>
                     </div>
                   </div>

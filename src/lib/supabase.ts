@@ -191,6 +191,8 @@ export interface BlogPostData {
   read_time?: number;
   published: boolean;
   featured_post: boolean;
+  scheduled_at?: string | null;
+  published_at?: string | null;
   meta_title?: string;
   meta_description?: string;
   tags?: string[];
@@ -491,7 +493,7 @@ export const supabaseApi = {
     const { data, error } = await supabase
       .from('blog_posts')
       .select(
-        'id,title,description,category,image_url,slug,read_time,published,featured_post,meta_title,meta_description,created_at,updated_at'
+        'id,title,description,category,image_url,slug,read_time,published,featured_post,scheduled_at,published_at,meta_title,meta_description,created_at,updated_at'
       )
       .order('created_at', { ascending: false });
 
@@ -500,10 +502,13 @@ export const supabaseApi = {
   },
 
   async getPublishedBlogPosts() {
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
       .eq('published', true)
+      .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
+      .order('scheduled_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -525,7 +530,7 @@ export const supabaseApi = {
     const { data, error } = await supabase
       .from('blog_posts')
       .select(
-        'id,title,description,category,content,image_url,slug,read_time,published,featured_post,meta_title,meta_description,tags,created_at,updated_at'
+        'id,title,description,category,content,image_url,slug,read_time,published,featured_post,scheduled_at,published_at,meta_title,meta_description,tags,created_at,updated_at'
       )
       .eq('slug', slug)
       .single();
@@ -568,11 +573,14 @@ export const supabaseApi = {
   },
 
   async getBlogPostsByCategory(category: string) {
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
       .eq('category', category)
       .eq('published', true)
+      .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
+      .order('scheduled_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -580,11 +588,14 @@ export const supabaseApi = {
   },
 
   async getFeaturedBlogPosts() {
+    const now = new Date().toISOString();
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
       .eq('featured_post', true)
       .eq('published', true)
+      .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
+      .order('scheduled_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     
     if (error) throw error;

@@ -126,12 +126,14 @@ async function loadSupabaseClient() {
           let query = client
             .from('simulacoes')
             .select(
-              'id,nome_completo,email,status,created_at,valor_emprestimo,valor_imovel,parcelas,session_id,visitor_id'
+              'id,nome_completo,email,telefone,status,created_at,valor_emprestimo,valor_imovel,parcelas,session_id,visitor_id'
             )
             .not('nome_completo', 'is', null)
             .neq('nome_completo', '')
             .not('email', 'is', null)
             .neq('email', '')
+            .not('telefone', 'is', null)
+            .neq('telefone', '')
             .neq('status', 'novo')
             .order('created_at', { ascending: false })
             .range(from, to);

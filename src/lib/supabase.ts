@@ -332,6 +332,7 @@ export const supabaseApi = {
       .neq('telefone', '')
       .neq('telefone', SIMULATION_PLACEHOLDER_PHONE)
       .neq('status', 'novo')
+      // AdminDashboard depende das simulações mais recentes primeiro
       .order('created_at', { ascending: false })
       .range(from, to);
 

@@ -11,6 +11,16 @@ interface DiagnosticResult {
   details?: unknown;
 }
 
+const formatErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error);
+  } catch (stringifyError) {
+    return `Erro desconhecido: ${String(stringifyError)}`;
+  }
+};
+
 const SupabaseDiagnostics: React.FC = () => {
   const [results, setResults] = useState<DiagnosticResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -39,7 +49,7 @@ const SupabaseDiagnostics: React.FC = () => {
         addResult({
           test: 'Conexão Básica',
           status: 'error',
-          message: `Erro: ${error}`,
+          message: `Erro: ${formatErrorMessage(error)}`,
           details: error
         });
       }
@@ -58,7 +68,7 @@ const SupabaseDiagnostics: React.FC = () => {
         addResult({
           test: 'Tabela blog_posts',
           status: 'error',
-          message: `Erro ao acessar: ${error}`,
+          message: `Erro ao acessar: ${formatErrorMessage(error)}`,
           details: error
         });
       }
@@ -112,7 +122,7 @@ const SupabaseDiagnostics: React.FC = () => {
         addResult({
           test: 'Storage Bucket',
           status: 'error',
-          message: `Erro no storage: ${error}`,
+          message: `Erro no storage: ${formatErrorMessage(error)}`,
           details: error
         });
       }
@@ -120,6 +130,7 @@ const SupabaseDiagnostics: React.FC = () => {
       // 4. Teste de criação de post
       setSyncStatus('Testando criação de post...');
       try {
+        const now = new Date().toISOString();
         const testPost = {
           title: 'Teste de Diagnóstico',
           description: 'Post de teste para verificar funcionamento',
@@ -129,14 +140,16 @@ const SupabaseDiagnostics: React.FC = () => {
           slug: `teste-diagnostico-${Date.now()}`,
           readTime: 1,
           published: false,
-          featuredPost: false
+          featuredPost: false,
+          scheduledAt: now
         };
 
-        const created = await supabaseApi.createBlogPost(testPost);
-        
+        const supabasePost = BlogService.convertBlogPostToSupabase(testPost);
+        const created = await supabaseApi.createBlogPost(supabasePost);
+
         // Deletar o post de teste
         await supabaseApi.deleteBlogPost(created.id!);
-        
+
         addResult({
           test: 'CRUD Posts',
           status: 'success',
@@ -147,7 +160,7 @@ const SupabaseDiagnostics: React.FC = () => {
         addResult({
           test: 'CRUD Posts',
           status: 'error',
-          message: `Erro no CRUD: ${error}`,
+          message: `Erro no CRUD: ${formatErrorMessage(error)}`,
           details: error
         });
       }

@@ -715,6 +715,9 @@ const AdminDashboard: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-sm">
                           <div>{simulacao.email}</div>
+                          {simulacao.telefone && (
+                            <div className="text-xs text-gray-500">{formatPhone(simulacao.telefone)}</div>
+                          )}
                           <div className="text-gray-500 text-xs break-all">
                             Sessão: {visitor.primary_session_id || 'N/D'}
                           </div>

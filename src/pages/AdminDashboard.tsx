@@ -37,7 +37,6 @@ import { ParceiroData } from '@/lib/supabase';
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import Download from 'lucide-react/dist/esm/icons/download';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
-import Users from 'lucide-react/dist/esm/icons/users';
 import Calculator from 'lucide-react/dist/esm/icons/calculator';
 import TrendingUp from 'lucide-react/dist/esm/icons/trending-up';
 import Clock from 'lucide-react/dist/esm/icons/clock';
@@ -80,11 +79,7 @@ const AdminDashboard: React.FC = () => {
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
   const [filtroNome, setFiltroNome] = useState('');
   const [stats, setStats] = useState({
-    total: 0,
-    novos: 0,
-    interessados: 0,
-    contatados: 0,
-    finalizados: 0
+    lastWeekLeads: 0
   });
   
   // Estados para parceiros
@@ -385,24 +380,24 @@ const AdminDashboard: React.FC = () => {
   };
 
   const calculateStats = (data: SessionGroupWithJourney[]) => {
+    const isWithinLastWeek = (createdAt?: string | null) => {
+      if (!createdAt) return false;
+      const createdDate = new Date(createdAt);
+      if (Number.isNaN(createdDate.getTime())) return false;
 
-    const stats = {
-      total: data.length,
-      novos: data.filter(s => s.simulacoes[0]?.status === 'novo').length,
-      interessados: data.filter(s => s.simulacoes[0]?.status === 'interessado').length,
-      contatados: data.filter(s => s.simulacoes[0]?.status === 'contatado').length,
-      finalizados: data.filter(s => s.simulacoes[0]?.status === 'finalizado').length
+      const now = new Date();
+      const weekAgo = new Date();
+      weekAgo.setDate(now.getDate() - 7);
+      return createdDate >= weekAgo && createdDate <= now;
     };
-    setStats(stats);
-  };
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    try {
-      await LocalSimulationService.updateSimulationStatus(id, newStatus);
-      await loadSimulacoes();
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-    }
+    const lastWeekLeads = data.filter((group) =>
+      isWithinLastWeek(group.simulacoes[0]?.created_at)
+    ).length;
+
+    setStats({
+      lastWeekLeads
+    });
   };
 
   const exportToCSV = () => {
@@ -619,54 +614,27 @@ const AdminDashboard: React.FC = () => {
 
       {activeTab === 'simulacoes' && (
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card>
+          <div className="flex flex-col md:flex-row gap-4 mb-8 items-stretch">
+            <Card className="md:w-1/3">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total de Visitantes</p>
-                    <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
+                    <p className="text-sm font-medium text-gray-600">Leads na última semana</p>
+                    <p className="text-3xl font-bold text-blue-600">{stats.lastWeekLeads}</p>
                   </div>
-                  <Users className="w-8 h-8 text-blue-600" />
+                  <TrendingUp className="w-8 h-8 text-blue-600" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Leads Novos</p>
-                    <p className="text-3xl font-bold text-green-600">{stats.novos}</p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Interessados</p>
-                    <p className="text-3xl font-bold text-yellow-600">{stats.interessados}</p>
-                  </div>
-                  <Clock className="w-8 h-8 text-yellow-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Contatados</p>
-                    <p className="text-3xl font-bold text-purple-600">{stats.contatados}</p>
-                  </div>
-                  <UserCheck className="w-8 h-8 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex-1 flex items-center">
+              <Input
+                placeholder="Buscar leads por nome..."
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                className="h-full"
+              />
+            </div>
           </div>
 
           <Card className="mb-6">
@@ -675,14 +643,6 @@ const AdminDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4 items-center">
-                <div className="flex-1 min-w-[200px]">
-                  <Input
-                    placeholder="Buscar por nome..."
-                    value={filtroNome}
-                    onChange={(e) => setFiltroNome(e.target.value)}
-                  />
-                </div>
-                
                 <Select value={filtroStatus} onValueChange={setFiltroStatus}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Status" />
@@ -725,8 +685,6 @@ const AdminDashboard: React.FC = () => {
                       <TableHead>Valores</TableHead>
                       <TableHead>Parcelas</TableHead>
                       <TableHead>Simulações</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -753,17 +711,6 @@ const AdminDashboard: React.FC = () => {
                           {simulacao.telefone && (
                             <div className="text-xs text-gray-500">{formatPhone(simulacao.telefone)}</div>
                           )}
-                          <div className="text-gray-500 text-xs break-all">
-                            Sessão: {visitor.primary_session_id || 'N/D'}
-                          </div>
-                          <div className="text-gray-500 text-xs break-all">
-                            Grupo: {visitor.visitor_id}
-                          </div>
-                          {visitor.journey_status && (
-                            <div className="text-gray-500 text-xs">
-                              Jornada: {visitor.journey_status}
-                            </div>
-                          )}
                         </TableCell>
                         <TableCell className="text-sm">
                           <div className="font-semibold text-green-600">
@@ -775,27 +722,6 @@ const AdminDashboard: React.FC = () => {
                         </TableCell>
                         <TableCell>{simulacao.parcelas ? `${simulacao.parcelas}x` : '—'}</TableCell>
                         <TableCell>{visitor.total_simulacoes}</TableCell>
-                        <TableCell>
-                          <Select
-                            value={simulacao.status || 'novo'}
-                            onValueChange={(value) => updateStatus(simulacao.id!, value)}
-                          >
-                            <SelectTrigger className="w-[120px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="novo">Novo</SelectItem>
-                              <SelectItem value="interessado">Interessado</SelectItem>
-                              <SelectItem value="contatado">Contatado</SelectItem>
-                              <SelectItem value="finalizado">Finalizado</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
                       </TableRow>
                       );
                     })}

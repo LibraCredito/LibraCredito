@@ -72,7 +72,7 @@ const Header: React.FC = () => {
   };
 
   const handlePortalClientes = () => {
-    window.open('http://clientes.libracredito.com.br/', '_blank');
+    window.open('https://clientes.libracredito.com.br/', '_blank');
   };
 
   return (

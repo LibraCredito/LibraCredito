@@ -72,7 +72,7 @@ const Header: React.FC = () => {
   };
 
   const handlePortalClientes = () => {
-    window.open('https://libracredito.construtorastefani.com.br:9000/', '_blank');
+    window.open('http://clientes.libracredito.com.br/', '_blank');
   };
 
   return (

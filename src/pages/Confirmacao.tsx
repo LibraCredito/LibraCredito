@@ -96,6 +96,18 @@ const Confirmacao = () => {
           <Button asChild variant="default" className="px-6">
             <Link to="/quem-somos">Conheça a Libra</Link>
           </Button>
+          <Button
+            asChild
+            className="px-6 bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600"
+          >
+            <a
+              href="https://wa.me/5516997879837?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!"
+              rel="noreferrer"
+              target="_blank"
+            >
+              Iniciar atendimento no WhatsApp
+            </a>
+          </Button>
         </div>
       </div>
     </MobileLayout>

@@ -572,21 +572,37 @@ export class BlogService {
       if (supabasePosts && supabasePosts.length >= 0) {
         // Converter formato Supabase para BlogPost
         const convertedPosts = supabasePosts.map(this.convertSupabaseToBlogPost);
-        
-        // Se não há posts no Supabase, mas há posts locais, sincronizar
+
+        // Se o Supabase está vazio, evitar sobrescrever o cache local com vazio
         if (convertedPosts.length === 0) {
-          console.log('📤 Nenhum post no Supabase, verificando localStorage para sync...');
-          await this.syncLocalToSupabase();
-          
-          // Tentar buscar novamente após sync
-          const reloadedPosts = await supabaseApi.getBlogPostSummaries();
-          if (reloadedPosts && reloadedPosts.length > 0) {
-            const reloadedConverted = reloadedPosts.map(this.convertSupabaseToBlogPost);
-            this.saveToLocalStorageWithCleanup(reloadedConverted);
-            return reloadedConverted;
+          console.log('📭 Nenhum post no Supabase. Verificando cache local...');
+          try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            const cachedPosts: BlogPost[] = stored ? JSON.parse(stored) : [];
+
+            if (cachedPosts.length > 0) {
+              console.log('📱 Usando posts do localStorage enquanto o Supabase está vazio.');
+              try {
+                await this.syncLocalToSupabase();
+              } catch (syncError) {
+                console.error('❌ Falha ao sincronizar posts locais para o Supabase:', syncError);
+              }
+              return cachedPosts;
+            }
+          } catch (storageError) {
+            console.error('❌ Erro ao ler cache local:', storageError);
           }
+
+          console.log('🆕 Inicializando posts padrão, já que não há dados locais.');
+          this.saveToLocalStorageWithCleanup(EXISTING_POSTS);
+          try {
+            await this.initializeDefaultPosts();
+          } catch (initError) {
+            console.error('❌ Erro ao inicializar posts padrão no Supabase:', initError);
+          }
+          return EXISTING_POSTS;
         }
-        
+
         // Atualizar cache local
         this.saveToLocalStorageWithCleanup(convertedPosts);
         console.log('✅ Posts carregados do Supabase e cache atualizado');

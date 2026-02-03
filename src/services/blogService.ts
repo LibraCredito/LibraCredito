@@ -484,7 +484,7 @@ export class BlogService {
       readTime: supabasePost.read_time || 5,
       published: supabasePost.published,
       featuredPost: supabasePost.featured_post,
-      scheduledAt: supabasePost.scheduled_at || supabasePost.published_at || supabasePost.created_at,
+      scheduledAt: supabasePost.scheduled_at || undefined,
       publishedAt: supabasePost.published_at || undefined,
       metaTitle: supabasePost.meta_title,
       metaDescription: supabasePost.meta_description,
@@ -520,11 +520,25 @@ export class BlogService {
   }
 
   static getScheduledDate(post: BlogPost): Date {
-    return new Date(post.scheduledAt || post.createdAt || new Date().toISOString());
+    return new Date(
+      post.scheduledAt ||
+      post.publishedAt ||
+      post.createdAt ||
+      new Date().toISOString()
+    );
   }
 
   static isPostPublished(post: BlogPost, referenceDate: Date = new Date()): boolean {
-    return post.published && this.getScheduledDate(post).getTime() <= referenceDate.getTime();
+    if (!post.published) {
+      return false;
+    }
+
+    const hasSchedule = Boolean(post.scheduledAt || post.publishedAt);
+    if (!hasSchedule) {
+      return true;
+    }
+
+    return this.getScheduledDate(post).getTime() <= referenceDate.getTime();
   }
 
   static isPostScheduled(post: BlogPost, referenceDate: Date = new Date()): boolean {

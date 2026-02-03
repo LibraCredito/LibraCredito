@@ -83,6 +83,14 @@ const Confirmacao = () => {
           Enquanto isso, aproveite para conhecer mais sobre a Libra e nossas soluções clicando
           no botão abaixo.
         </p>
+        <a
+          className="text-sm font-semibold text-green-700 transition hover:text-green-800"
+          href="https://wa.me/5516997879837?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!"
+          rel="noreferrer"
+          target="_blank"
+        >
+          Inicie seu atendimento
+        </a>
         <p className="text-sm text-gray-600">Você será redirecionado automaticamente em até 30 segundos.</p>
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
           <Button asChild variant="default" className="px-6">

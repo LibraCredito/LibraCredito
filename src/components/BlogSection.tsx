@@ -8,6 +8,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { BlogService, type BlogPost } from '@/services/blogService';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+const FALLBACK_IMAGE_URL = 'https://placehold.co/1280x720?text=Blog+Image';
+
 const BlogSection: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -143,7 +145,7 @@ const BlogSection: React.FC = () => {
                   {/* Imagem do post */}
                   <div className="aspect-video overflow-hidden rounded-t-lg bg-white">
                     <img
-                      src={post.imageUrl}
+                      src={post.imageUrl || FALLBACK_IMAGE_URL}
                       alt={post.metaTitle ?? post.title}
                       className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       width={1280}
@@ -151,7 +153,10 @@ const BlogSection: React.FC = () => {
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = 'https://placehold.co/1280x720?text=Blog+Image';
+                        if (target.dataset.fallback !== 'true') {
+                          target.src = FALLBACK_IMAGE_URL;
+                          target.dataset.fallback = 'true';
+                        }
                       }}
                     />
                   </div>

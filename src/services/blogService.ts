@@ -519,6 +519,32 @@ export class BlogService {
     };
   }
 
+  private static isValidUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value
+    );
+  }
+
+  private static mergePostsByIdOrSlug(existing: BlogPost[], updates: BlogPost[]): BlogPost[] {
+    const merged = [...existing];
+
+    updates.forEach(update => {
+      const index = merged.findIndex(post => {
+        if (update.id && post.id === update.id) return true;
+        if (update.slug && post.slug === update.slug) return true;
+        return false;
+      });
+
+      if (index >= 0) {
+        merged[index] = { ...merged[index], ...update };
+      } else {
+        merged.push(update);
+      }
+    });
+
+    return merged;
+  }
+
   static getScheduledDate(post: BlogPost): Date {
     return new Date(post.scheduledAt || post.createdAt || new Date().toISOString());
   }
@@ -572,7 +598,32 @@ export class BlogService {
       if (supabasePosts && supabasePosts.length >= 0) {
         // Converter formato Supabase para BlogPost
         const convertedPosts = supabasePosts.map(this.convertSupabaseToBlogPost);
-        
+
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem(this.STORAGE_KEY);
+          if (stored) {
+            const localPosts: BlogPost[] = JSON.parse(stored);
+            const supabaseIds = new Set(convertedPosts.map(post => post.id));
+            const supabaseSlugs = new Set(convertedPosts.map(post => post.slug));
+            const hasUnsyncedPosts = localPosts.some(post => {
+              if (!post.id || !post.slug) return false;
+              return (
+                !this.isValidUuid(post.id) ||
+                (!supabaseIds.has(post.id) && !supabaseSlugs.has(post.slug))
+              );
+            });
+
+            if (hasUnsyncedPosts) {
+              console.log('🔄 Posts locais detectados, sincronizando com Supabase...');
+              await this.syncLocalToSupabase();
+              const reloadedPosts = await supabaseApi.getBlogPostSummaries();
+              const reloadedConverted = reloadedPosts.map(this.convertSupabaseToBlogPost);
+              this.saveToLocalStorageWithCleanup(reloadedConverted);
+              return reloadedConverted;
+            }
+          }
+        }
+
         // Se não há posts no Supabase, mas há posts locais, sincronizar
         if (convertedPosts.length === 0) {
           console.log('📤 Nenhum post no Supabase, verificando localStorage para sync...');
@@ -699,6 +750,8 @@ export class BlogService {
    */
   static async syncLocalToSupabase(): Promise<void> {
     try {
+      if (typeof window === 'undefined') return;
+
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) return;
 
@@ -706,21 +759,37 @@ export class BlogService {
       console.log(`🔄 Sincronizando ${localPosts.length} posts locais para Supabase...`);
 
       let synced = 0;
+      const updatedLocalPosts: BlogPost[] = [];
       for (const post of localPosts) {
         try {
           // Verificar se post já existe no Supabase
-          const existing = await supabaseApi.getBlogPostById(post.id!).catch(() => null);
-          
-          if (!existing) {
-            // Criar no Supabase
-            const supabaseData = this.convertBlogPostToSupabase(post);
-            await supabaseApi.createBlogPost(supabaseData);
-            synced++;
-            console.log(`✅ Post sincronizado: ${post.title}`);
+          let existing = null;
+          if (post.id && this.isValidUuid(post.id)) {
+            existing = await supabaseApi.getBlogPostById(post.id).catch(() => null);
           }
+          if (!existing && post.slug) {
+            existing = await supabaseApi.getBlogPostBySlug(post.slug).catch(() => null);
+          }
+          
+          if (existing) {
+            updatedLocalPosts.push(this.convertSupabaseToBlogPost(existing));
+            continue;
+          }
+
+          // Criar no Supabase
+          const supabaseData = this.convertBlogPostToSupabase(post);
+          const createdPost = await supabaseApi.createBlogPost(supabaseData);
+          updatedLocalPosts.push(this.convertSupabaseToBlogPost(createdPost));
+          synced++;
+          console.log(`✅ Post sincronizado: ${post.title}`);
         } catch (error) {
           console.error(`❌ Erro ao sincronizar post "${post.title}":`, error);
+          updatedLocalPosts.push(post);
         }
+      }
+
+      if (updatedLocalPosts.length > 0) {
+        this.saveToLocalStorageWithCleanup(updatedLocalPosts);
       }
 
       console.log(`🎉 Sincronização concluída: ${synced} posts sincronizados`);
@@ -927,26 +996,73 @@ export class BlogService {
    * Buscar posts por categoria
    */
   static async getPostsByCategory(category: BlogCategory): Promise<BlogPost[]> {
-    const posts = await this.getAllPosts();
-    return posts.filter(post => post.category === category && this.isPostPublished(post));
+    try {
+      const supabasePosts = await supabaseApi.getBlogPostsByCategory(category);
+      const convertedPosts = supabasePosts.map(this.convertSupabaseToBlogPost);
+
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        const localPosts: BlogPost[] = stored ? JSON.parse(stored) : [];
+        const mergedPosts = this.mergePostsByIdOrSlug(localPosts, convertedPosts);
+        this.saveToLocalStorageWithCleanup(mergedPosts);
+      }
+
+      return convertedPosts;
+    } catch (error) {
+      console.error('❌ Erro ao buscar posts por categoria no Supabase:', error);
+      const posts = await this.getAllPosts();
+      return posts.filter(post => post.category === category && this.isPostPublished(post));
+    }
   }
 
   /**
    * Buscar posts publicados
    */
   static async getPublishedPosts(): Promise<BlogPost[]> {
-    const posts = await this.getAllPosts();
-    return posts
-      .filter(post => this.isPostPublished(post))
-      .sort((a, b) => this.getScheduledDate(b).getTime() - this.getScheduledDate(a).getTime());
+    try {
+      const supabasePosts = await supabaseApi.getPublishedBlogPosts();
+      const convertedPosts = supabasePosts.map(this.convertSupabaseToBlogPost);
+
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        const localPosts: BlogPost[] = stored ? JSON.parse(stored) : [];
+        const mergedPosts = this.mergePostsByIdOrSlug(localPosts, convertedPosts);
+        this.saveToLocalStorageWithCleanup(mergedPosts);
+      }
+
+      return convertedPosts.sort(
+        (a, b) => this.getScheduledDate(b).getTime() - this.getScheduledDate(a).getTime()
+      );
+    } catch (error) {
+      console.error('❌ Erro ao buscar posts publicados no Supabase:', error);
+      const posts = await this.getAllPosts();
+      return posts
+        .filter(post => this.isPostPublished(post))
+        .sort((a, b) => this.getScheduledDate(b).getTime() - this.getScheduledDate(a).getTime());
+    }
   }
 
   /**
    * Obter posts em destaque
    */
   static async getFeaturedPosts(): Promise<BlogPost[]> {
-    const posts = await this.getAllPosts();
-    return posts.filter(post => this.isPostPublished(post) && post.featuredPost);
+    try {
+      const supabasePosts = await supabaseApi.getFeaturedBlogPosts();
+      const convertedPosts = supabasePosts.map(this.convertSupabaseToBlogPost);
+
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        const localPosts: BlogPost[] = stored ? JSON.parse(stored) : [];
+        const mergedPosts = this.mergePostsByIdOrSlug(localPosts, convertedPosts);
+        this.saveToLocalStorageWithCleanup(mergedPosts);
+      }
+
+      return convertedPosts;
+    } catch (error) {
+      console.error('❌ Erro ao buscar posts em destaque no Supabase:', error);
+      const posts = await this.getAllPosts();
+      return posts.filter(post => this.isPostPublished(post) && post.featuredPost);
+    }
   }
 
   /**

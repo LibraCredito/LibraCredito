@@ -4,8 +4,18 @@ import DOMPurify from 'dompurify';
 export const renderMarkdown = (content: string): string => {
   if (!content) return '';
 
+  const decodeHtml = (value: string): string => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = value;
+    return textarea.value;
+  };
+
+  const maybeDecoded = decodeHtml(content);
+  const shouldUseDecoded = maybeDecoded !== content && /<\/?[a-z][\s\S]*>/i.test(maybeDecoded);
+  const normalizedContent = shouldUseDecoded ? maybeDecoded : content;
+
   // Parse markdown to HTML and sanitize
-  const parsed = marked.parse(content);
+  const parsed = marked.parse(normalizedContent);
   const sanitized = DOMPurify.sanitize(parsed);
 
   // Inject Tailwind classes into allowed elements

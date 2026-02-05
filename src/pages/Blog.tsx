@@ -81,13 +81,13 @@ const CATEGORIES = [
 
 interface BlogProps { initialPosts?: BlogPost[]; }
 
-const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
+const Blog: React.FC<BlogProps> = ({ initialPosts }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const resolvedInitialPosts = useMemo(() => {
-    if (initialPosts.length > 0) {
+    if (initialPosts?.length) {
       return initialPosts;
     }
 
@@ -126,7 +126,7 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
       setLoading(true);
     }
     loadPosts();
-  }, [initialPosts, resolvedInitialPosts.length]);
+  }, [resolvedInitialPosts.length]);
 
   useEffect(() => {
     setPosts(resolvedInitialPosts);

@@ -33,12 +33,6 @@ const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
   const [loading, setLoading] = useState(!resolvedInitialPost);
 
   useEffect(() => {
-    if (resolvedInitialPost) {
-      setPost(resolvedInitialPost);
-    }
-  }, [resolvedInitialPost]);
-
-  useEffect(() => {
     let isActive = true;
 
     const loadPost = async () => {

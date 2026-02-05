@@ -139,10 +139,6 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
   }, [resolvedInitialPosts.length]);
 
   useEffect(() => {
-    setPosts(resolvedInitialPosts);
-  }, [resolvedInitialPosts]);
-
-  useEffect(() => {
     if (typeof window !== 'undefined') {
       window.__INITIAL_DATA__ = undefined;
     }

@@ -200,6 +200,8 @@ export interface BlogPostData {
   updated_at?: string;
 }
 
+export type PostsData = BlogPostData;
+
 // Schema do banco para TypeScript
 export interface Database {
   public: {
@@ -223,6 +225,11 @@ export interface Database {
         Row: BlogPostData;
         Insert: Omit<BlogPostData, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<BlogPostData, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      posts: {
+        Row: PostsData;
+        Insert: Omit<PostsData, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PostsData, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
   };
@@ -490,15 +497,29 @@ export const supabaseApi = {
 
   // Blog Posts
   async getBlogPostSummaries() {
+    const columns =
+      'id,title,description,category,image_url,slug,read_time,published,featured_post,scheduled_at,published_at,meta_title,meta_description,created_at,updated_at';
+
     const { data, error } = await supabase
       .from('blog_posts')
-      .select(
-        'id,title,description,category,image_url,slug,read_time,published,featured_post,scheduled_at,published_at,meta_title,meta_description,created_at,updated_at'
-      )
+      .select(columns)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+
+    if (error && import.meta.env.DEV) {
+      console.warn('⚠️ Falha ao buscar blog_posts, tentando tabela posts:', error);
+    }
+
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('posts')
+      .select(columns)
+      .order('created_at', { ascending: false });
+
+    if (fallbackError) throw fallbackError;
+    return fallbackData || [];
   },
 
   async getPublishedBlogPosts() {
@@ -510,9 +531,25 @@ export const supabaseApi = {
       .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
       .order('scheduled_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+
+    if (error && import.meta.env.DEV) {
+      console.warn('⚠️ Falha ao buscar blog_posts publicados, tentando tabela posts:', error);
+    }
+
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
+      .order('scheduled_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false });
+
+    if (fallbackError) throw fallbackError;
+    return fallbackData || [];
   },
 
   async getBlogPostById(id: string) {
@@ -521,22 +558,51 @@ export const supabaseApi = {
       .select('*')
       .eq('id', id)
       .single();
-    
-    if (error) throw error;
-    return data;
+
+    if (!error && data) {
+      return data;
+    }
+
+    if (error && import.meta.env.DEV) {
+      console.warn('⚠️ Falha ao buscar blog_posts por ID, tentando tabela posts:', error);
+    }
+
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fallbackError) throw fallbackError;
+    return fallbackData;
   },
 
   async getBlogPostBySlug(slug: string) {
+    const columns =
+      'id,title,description,category,content,image_url,slug,read_time,published,featured_post,scheduled_at,published_at,meta_title,meta_description,tags,created_at,updated_at';
+
     const { data, error } = await supabase
       .from('blog_posts')
-      .select(
-        'id,title,description,category,content,image_url,slug,read_time,published,featured_post,scheduled_at,published_at,meta_title,meta_description,tags,created_at,updated_at'
-      )
+      .select(columns)
       .eq('slug', slug)
       .single();
-    
-    if (error) throw error;
-    return data;
+
+    if (!error && data) {
+      return data;
+    }
+
+    if (error && import.meta.env.DEV) {
+      console.warn('⚠️ Falha ao buscar blog_posts por slug, tentando tabela posts:', error);
+    }
+
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('posts')
+      .select(columns)
+      .eq('slug', slug)
+      .single();
+
+    if (fallbackError) throw fallbackError;
+    return fallbackData;
   },
 
   async createBlogPost(data: Database['public']['Tables']['blog_posts']['Insert']) {
@@ -582,9 +648,26 @@ export const supabaseApi = {
       .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
       .order('scheduled_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+
+    if (error && import.meta.env.DEV) {
+      console.warn('⚠️ Falha ao buscar blog_posts por categoria, tentando tabela posts:', error);
+    }
+
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('category', category)
+      .eq('published', true)
+      .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
+      .order('scheduled_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false });
+
+    if (fallbackError) throw fallbackError;
+    return fallbackData || [];
   },
 
   async getFeaturedBlogPosts() {
@@ -597,9 +680,26 @@ export const supabaseApi = {
       .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
       .order('scheduled_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+
+    if (error && import.meta.env.DEV) {
+      console.warn('⚠️ Falha ao buscar blog_posts em destaque, tentando tabela posts:', error);
+    }
+
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('featured_post', true)
+      .eq('published', true)
+      .or(`scheduled_at.lte.${now},scheduled_at.is.null`)
+      .order('scheduled_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false });
+
+    if (fallbackError) throw fallbackError;
+    return fallbackData || [];
   },
 
   // Upload de imagem para Supabase Storage

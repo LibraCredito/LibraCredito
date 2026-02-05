@@ -965,38 +965,24 @@ export class BlogService {
       return true;
     }
 
+    const posts = await this.getAllPosts();
+    const filteredPosts = posts.filter(post => post.id !== id);
+
+    if (filteredPosts.length === posts.length) {
+      throw new Error('Post não encontrado');
+    }
+
     try {
       // Primeiro, tentar deletar do Supabase
       await supabaseApi.deleteBlogPost(id);
       console.log('✅ Post deletado do Supabase com sucesso');
-      
-      // Atualizar cache local
-      const posts = await this.getAllPosts();
-      const filteredPosts = posts.filter(post => post.id !== id);
-      
-      if (filteredPosts.length === posts.length) {
-        throw new Error('Post não encontrado no cache local');
-      }
-
-      this.saveToLocalStorageWithCleanup(filteredPosts);
-      return true;
-      
     } catch (error) {
-      console.error('❌ Erro ao deletar post do Supabase:', error);
-      
-      // Fallback: tentar deletar apenas do localStorage
-      const posts = await this.getAllPosts();
-      const filteredPosts = posts.filter(post => post.id !== id);
-      
-      if (filteredPosts.length === posts.length) {
-        throw new Error('Post não encontrado');
-      }
-      
-      this.saveToLocalStorageWithCleanup(filteredPosts);
-      
-      // Alertar sobre exclusão incompleta
-      throw new Error(`Post removido localmente, mas falhou no Supabase: ${error instanceof Error ? error.message : error}`);
+      console.warn('⚠️ Erro ao deletar post do Supabase, mantendo remoção local:', error);
     }
+
+    // Atualizar cache local (independente do Supabase)
+    this.saveToLocalStorageWithCleanup(filteredPosts);
+    return true;
   }
 
   /**

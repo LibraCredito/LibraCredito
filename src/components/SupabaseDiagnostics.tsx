@@ -73,7 +73,35 @@ const SupabaseDiagnostics: React.FC = () => {
         });
       }
 
-      // 3. Teste do Storage (bucket blog-images)
+      // 3. Verificar views com SECURITY DEFINER
+      setSyncStatus('Verificando views com SECURITY DEFINER...');
+      try {
+        const views = await supabaseApi.getSecurityDefinerViews();
+
+        if (views.length > 0) {
+          addResult({
+            test: 'Views com SECURITY DEFINER',
+            status: 'warning',
+            message: `⚠️ ${views.length} view(s) com SECURITY DEFINER detectadas`,
+            details: views
+          });
+        } else {
+          addResult({
+            test: 'Views com SECURITY DEFINER',
+            status: 'success',
+            message: '✅ Nenhuma view com SECURITY DEFINER encontrada'
+          });
+        }
+      } catch (error) {
+        addResult({
+          test: 'Views com SECURITY DEFINER',
+          status: 'warning',
+          message: `Aviso: ${formatErrorMessage(error)}`,
+          details: error
+        });
+      }
+
+      // 4. Teste do Storage (bucket blog-images)
       setSyncStatus('Verificando Supabase Storage...');
       try {
         const { data: buckets, error } = await supabase.storage.listBuckets();
@@ -127,7 +155,7 @@ const SupabaseDiagnostics: React.FC = () => {
         });
       }
 
-      // 4. Teste de criação de post
+      // 5. Teste de criação de post
       setSyncStatus('Testando criação de post...');
       try {
         const now = new Date().toISOString();
@@ -358,6 +386,9 @@ const SupabaseDiagnostics: React.FC = () => {
           <ul className="list-disc list-inside space-y-1">
             <li>Conexão básica com Supabase</li>
             <li>Acesso à tabela blog_posts</li>
+            <li>
+              Views com <code>SECURITY DEFINER</code> (permissões do criador e RLS)
+            </li>
             <li>Configuração do Storage bucket</li>
             <li>Permissões de CRUD</li>
             <li>Sincronização de dados locais</li>

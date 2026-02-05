@@ -303,7 +303,38 @@ END
 $$;
 
 -- =====================================================
--- 7. ADICIONAR COMENTÁRIOS DE SEGURANÇA
+-- 7. FUNÇÃO PARA DETECTAR VIEWS COM SECURITY DEFINER
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION public.get_security_definer_views()
+RETURNS TABLE (
+    view_schema TEXT,
+    view_name TEXT,
+    reloptions TEXT[]
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+    SELECT 
+        n.nspname as view_schema,
+        c.relname as view_name,
+        c.reloptions
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relkind = 'v'
+    AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+    AND EXISTS (
+        SELECT 1
+        FROM unnest(COALESCE(c.reloptions, ARRAY[]::TEXT[])) option_value
+        WHERE option_value ILIKE 'security_definer=%'
+    );
+$$;
+
+COMMENT ON FUNCTION public.get_security_definer_views() IS 'Lista views definidas com SECURITY DEFINER para diagnóstico de permissões';
+
+-- =====================================================
+-- 8. ADICIONAR COMENTÁRIOS DE SEGURANÇA
 -- =====================================================
 
 COMMENT ON FUNCTION public.update_updated_at_column() IS 'Função segura para atualizar timestamp com search_path fixo';
@@ -314,7 +345,7 @@ COMMENT ON FUNCTION public.cleanup_old_data() IS 'Função segura para limpeza d
 COMMENT ON TABLE public.data_cleanup_log IS 'Tabela de log de limpeza com RLS habilitado';
 
 -- =====================================================
--- 8. VERIFICAÇÃO FINAL DE SEGURANÇA
+-- 9. VERIFICAÇÃO FINAL DE SEGURANÇA
 -- =====================================================
 
 -- Verificar se RLS está habilitado em todas as tabelas públicas

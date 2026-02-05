@@ -445,6 +445,8 @@ const EXISTING_POSTS: BlogPost[] = [
 export class BlogService {
   private static readonly STORAGE_KEY = 'libra_blog_posts';
   private static readonly CONFIG_KEY = 'libra_simulation_config';
+  private static readonly UUID_REGEX =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   /**
    * Gerar slug a partir do título
@@ -529,6 +531,10 @@ export class BlogService {
 
   static isPostScheduled(post: BlogPost, referenceDate: Date = new Date()): boolean {
     return post.published && this.getScheduledDate(post).getTime() > referenceDate.getTime();
+  }
+
+  private static isValidUuid(value?: string): boolean {
+    return Boolean(value && this.UUID_REGEX.test(value));
   }
 
   /**
@@ -709,7 +715,9 @@ export class BlogService {
       for (const post of localPosts) {
         try {
           // Verificar se post já existe no Supabase
-          const existing = await supabaseApi.getBlogPostById(post.id!).catch(() => null);
+          const existing = this.isValidUuid(post.id)
+            ? await supabaseApi.getBlogPostById(post.id!).catch(() => null)
+            : await supabaseApi.getBlogPostBySlug(post.slug).catch(() => null);
           
           if (!existing) {
             // Criar no Supabase

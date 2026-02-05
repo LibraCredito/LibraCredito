@@ -121,10 +121,9 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
       }
     };
     if (resolvedInitialPosts.length === 0) {
-      loadPosts();
-    } else {
-      setLoading(false);
+      setLoading(true);
     }
+    loadPosts();
   }, [initialPosts, resolvedInitialPosts.length]);
 
   useEffect(() => {

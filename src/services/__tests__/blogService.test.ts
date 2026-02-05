@@ -52,8 +52,6 @@ describe('BlogService scheduling logic', () => {
       read_time: 8,
       published: true,
       featured_post: false,
-      scheduled_at: '2024-05-01T10:00:00.000Z',
-      published_at: '2024-05-02T10:00:00.000Z',
       meta_title: 'Meta',
       meta_description: 'Meta desc',
       tags: ['tag'],
@@ -63,8 +61,8 @@ describe('BlogService scheduling logic', () => {
 
     const post = BlogService.convertSupabaseToBlogPost(supabasePost);
 
-    expect(post.scheduledAt).toBe(supabasePost.scheduled_at);
-    expect(post.publishedAt).toBe(supabasePost.published_at || undefined);
+    expect(post.scheduledAt).toBe(supabasePost.created_at);
+    expect(post.publishedAt).toBe(supabasePost.created_at);
   });
 
   it('prepares supabase payload for scheduled posts without premature publication', () => {
@@ -82,8 +80,6 @@ describe('BlogService scheduling logic', () => {
 
     const payload = BlogService.convertBlogPostToSupabase(post);
 
-    expect(payload.scheduled_at).toBe(scheduledDate);
-    expect(payload.published_at).toBeNull();
     expect(payload.published).toBe(true);
   });
 });

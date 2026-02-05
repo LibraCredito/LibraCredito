@@ -21,6 +21,11 @@ const formatErrorMessage = (error: unknown): string => {
   }
 };
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const isValidUuid = (value?: string) => Boolean(value && UUID_REGEX.test(value));
+
 const SupabaseDiagnostics: React.FC = () => {
   const [results, setResults] = useState<DiagnosticResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -199,7 +204,9 @@ const SupabaseDiagnostics: React.FC = () => {
           setSyncStatus(`Sincronizando: ${post.title}`);
           
           // Verificar se já existe no Supabase
-          const existing = await supabaseApi.getBlogPostById(post.id).catch(() => null);
+          const existing = isValidUuid(post.id)
+            ? await supabaseApi.getBlogPostById(post.id).catch(() => null)
+            : await supabaseApi.getBlogPostBySlug(post.slug).catch(() => null);
           
           if (!existing) {
             // Criar no Supabase

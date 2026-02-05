@@ -33,36 +33,36 @@ const BlogPost: React.FC<BlogPostPageProps> = ({ initialPost }) => {
   const [loading, setLoading] = useState(!resolvedInitialPost);
 
   useEffect(() => {
-    if (resolvedInitialPost) {
-      setPost(resolvedInitialPost);
-    }
-  }, [resolvedInitialPost]);
+    let isActive = true;
 
-  useEffect(() => {
     const loadPost = async () => {
       if (!slug) {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
         return;
       }
 
       try {
         const foundPost = await BlogService.getPostWithContent(slug);
-        if (foundPost) {
+        if (foundPost && isActive) {
           setPost(foundPost);
         }
       } catch (error) {
         console.error('Erro ao carregar post:', error);
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
-    if (!resolvedInitialPost || !resolvedInitialPost.content) {
-      loadPost();
-    } else {
-      setLoading(false);
-    }
-  }, [slug, resolvedInitialPost]);
+    loadPost();
+
+    return () => {
+      isActive = false;
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

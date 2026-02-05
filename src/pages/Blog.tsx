@@ -110,26 +110,33 @@ const Blog: React.FC<BlogProps> = ({ initialPosts = [] }) => {
 
   useEffect(() => {
     // Carregar posts do BlogService
+    let isActive = true;
+
     const loadPosts = async () => {
       try {
+        if (resolvedInitialPosts.length === 0) {
+          setLoading(true);
+        }
+
         const allPosts = await BlogService.getPublishedPosts();
-        setPosts(allPosts);
+        if (isActive) {
+          setPosts(allPosts);
+        }
       } catch (error) {
         console.error('Erro ao carregar posts:', error);
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
-    if (resolvedInitialPosts.length === 0) {
-      loadPosts();
-    } else {
-      setLoading(false);
-    }
-  }, [initialPosts, resolvedInitialPosts.length]);
 
-  useEffect(() => {
-    setPosts(resolvedInitialPosts);
-  }, [resolvedInitialPosts]);
+    loadPosts();
+
+    return () => {
+      isActive = false;
+    };
+  }, [resolvedInitialPosts.length]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

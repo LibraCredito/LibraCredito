@@ -484,8 +484,8 @@ export class BlogService {
       readTime: supabasePost.read_time || 5,
       published: supabasePost.published,
       featuredPost: supabasePost.featured_post,
-      scheduledAt: supabasePost.scheduled_at || supabasePost.published_at || supabasePost.created_at,
-      publishedAt: supabasePost.published_at || undefined,
+      scheduledAt: supabasePost.created_at,
+      publishedAt: supabasePost.published ? supabasePost.created_at : undefined,
       metaTitle: supabasePost.meta_title,
       metaDescription: supabasePost.meta_description,
       tags: supabasePost.tags,
@@ -498,9 +498,6 @@ export class BlogService {
    * Converter BlogPost para formato Supabase
    */
   static convertBlogPostToSupabase(post: BlogPost): Omit<BlogPostData, 'id' | 'created_at' | 'updated_at'> {
-    const scheduledAt = post.scheduledAt || post.createdAt || new Date().toISOString();
-    const shouldMarkPublished = post.published && new Date(scheduledAt).getTime() <= Date.now();
-
     return {
       title: post.title,
       description: post.description,
@@ -511,8 +508,6 @@ export class BlogService {
       read_time: post.readTime,
       published: post.published ?? false,
       featured_post: post.featuredPost ?? false,
-      scheduled_at: scheduledAt,
-      published_at: shouldMarkPublished ? post.publishedAt || scheduledAt : post.publishedAt || null,
       meta_title: post.metaTitle,
       meta_description: post.metaDescription,
       tags: post.tags

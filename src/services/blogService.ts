@@ -953,6 +953,18 @@ export class BlogService {
    * Deletar post
    */
   static async deletePost(id: string): Promise<boolean> {
+    if (!this.isValidUuid(id)) {
+      const posts = await this.getAllPosts();
+      const filteredPosts = posts.filter(post => post.id !== id);
+
+      if (filteredPosts.length === posts.length) {
+        throw new Error('Post não encontrado');
+      }
+
+      this.saveToLocalStorageWithCleanup(filteredPosts);
+      return true;
+    }
+
     try {
       // Primeiro, tentar deletar do Supabase
       await supabaseApi.deleteBlogPost(id);

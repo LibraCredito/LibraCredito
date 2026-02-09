@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import { Button } from '@/components/ui/button';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import WaveSeparator from '@/components/ui/WaveSeparator';
 
 const Confirmacao = () => {
@@ -80,14 +80,10 @@ const Confirmacao = () => {
           Fique atento ao telefone (16) 36007956 para nosso contato.
         </p>
         <p className="text-base text-gray-700">
-          Enquanto isso, aproveite para conhecer mais sobre a Libra e nossas soluções clicando
-          no botão abaixo.
+          Enquanto isso, se preferir, clique no botão abaixo para iniciar seu atendimento no WhatsApp.
         </p>
         <p className="text-sm text-gray-600">Você será redirecionado automaticamente em até 30 segundos.</p>
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <Button asChild variant="default" className="px-6">
-            <Link to="/quem-somos">Conheça a Libra</Link>
-          </Button>
           <Button
             asChild
             className="px-6 bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600"

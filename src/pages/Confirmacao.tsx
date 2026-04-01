@@ -1,6 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import MobileLayout from '@/components/MobileLayout';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import WaveSeparator from '@/components/ui/WaveSeparator';
 
@@ -78,9 +77,6 @@ const Confirmacao = () => {
         </p>
         <p className="text-base text-gray-700">
           Fique atento ao telefone (16) 36007956 para nosso contato.
-        </p>
-        <p className="text-base text-gray-700">
-          Enquanto isso, se preferir, clique no botão abaixo para iniciar seu atendimento no WhatsApp.
         </p>
         <p className="text-sm text-gray-600">Você será redirecionado automaticamente em até 30 segundos.</p>
         <div className="flex flex-col sm:flex-row gap-4 mt-4">

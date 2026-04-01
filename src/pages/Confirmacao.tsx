@@ -29,16 +29,26 @@ const Confirmacao = () => {
 
   useLayoutEffect(() => {
     const scrollingElement = document.scrollingElement || document.documentElement;
-    scrollingElement?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    if (scrollingElement && typeof scrollingElement.scrollTo === 'function') {
+      scrollingElement.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } else {
+      window.scrollTo(0, 0);
+    }
 
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
       // Garante que o usuário comece no topo da página de confirmação
-      mainContent.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      mainContent.parentElement?.scrollTo?.({ top: 0, left: 0, behavior: 'auto' });
+      if (typeof mainContent.scrollTo === 'function') {
+        mainContent.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      }
+      if (mainContent.parentElement && typeof mainContent.parentElement.scrollTo === 'function') {
+        mainContent.parentElement.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      }
     }
 
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    if (typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
   }, []);
 
   useEffect(() => {

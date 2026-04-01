@@ -1,6 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import MobileLayout from '@/components/MobileLayout';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import WaveSeparator from '@/components/ui/WaveSeparator';
 
@@ -79,24 +78,7 @@ const Confirmacao = () => {
         <p className="text-base text-gray-700">
           Fique atento ao telefone (16) 36007956 para nosso contato.
         </p>
-        <p className="text-base text-gray-700">
-          Enquanto isso, se preferir, clique no botão abaixo para iniciar seu atendimento no WhatsApp.
-        </p>
         <p className="text-sm text-gray-600">Você será redirecionado automaticamente em até 30 segundos.</p>
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <Button
-            asChild
-            className="px-6 bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600"
-          >
-            <a
-              href="https://wa.me/5516997207767?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!"
-              rel="noreferrer"
-              target="_blank"
-            >
-              Iniciar atendimento no WhatsApp
-            </a>
-          </Button>
-        </div>
       </div>
     </MobileLayout>
   );

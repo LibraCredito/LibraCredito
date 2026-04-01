@@ -1,16 +1,17 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
-import MobileLayout from '@/components/MobileLayout';
-import { Button } from '@/components/ui/button';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import WaveSeparator from '@/components/ui/WaveSeparator';
+
+const WHATSAPP_LINK =
+  'https://wa.me/5516997207767?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!';
+const PHONE_DISPLAY = '(16) 99720-7767';
+const PHONE_TEL = '+5516997207767';
 
 const Confirmacao = () => {
-  const topAnchorRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Runs once on mount to update page metadata
     document.title = 'Simulação Enviada | Libra Crédito';
+
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute(
@@ -18,6 +19,8 @@ const Confirmacao = () => {
         'Confirmação de envio da simulação. Em breve nossa equipe entrará em contato.'
       );
     }
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 
     const timer = window.setTimeout(() => {
       navigate('/quem-somos');
@@ -28,77 +31,40 @@ const Confirmacao = () => {
     };
   }, [navigate]);
 
-  useLayoutEffect(() => {
-    const scrollingElement = document.scrollingElement || document.documentElement;
-    scrollingElement?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-      // Garante que o usuário comece no topo da página de confirmação
-      mainContent.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      mainContent.parentElement?.scrollTo?.({ top: 0, left: 0, behavior: 'auto' });
-    }
-
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-  }, []);
-
-  useEffect(() => {
-    if (!topAnchorRef.current) {
-      return;
-    }
-
-    const scrollToTop = () => {
-      const anchor = topAnchorRef.current;
-      if (anchor && typeof anchor.scrollIntoView === 'function') {
-        anchor.scrollIntoView({ behavior: 'auto', block: 'start' });
-      }
-    };
-
-    // Reforça o reset de scroll em diferentes ciclos de renderização
-    scrollToTop();
-
-    const rafId = window.requestAnimationFrame(scrollToTop);
-    const timeoutId = window.setTimeout(scrollToTop, 150);
-
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
-
   return (
-    <MobileLayout>
-      <div ref={topAnchorRef} aria-hidden="true" />
-      <WaveSeparator variant="hero" height="md" inverted />
-      <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-6 bg-white">
-
+    <main className="min-h-screen bg-white px-4 py-12">
+      <section className="mx-auto w-full max-w-xl rounded-2xl border border-green-200 bg-green-50 p-6 text-center shadow-sm">
         <h1 className="text-2xl font-bold text-libra-navy">✅ Simulação enviada com sucesso</h1>
-        <p className="text-base text-gray-700">
-          Recebemos seus dados e em breve, um dos nossos analistas entrará em contato com você.
+        <p className="mt-4 text-base text-gray-700">
+          Recebemos seus dados e nossa equipe entrará em contato em breve.
         </p>
-        <p className="text-base text-gray-700">
-          Fique atento ao telefone (16) 36007956 para nosso contato.
+        <p className="mt-2 text-base text-gray-700">
+          Se preferir, você já pode falar com a gente agora:
         </p>
-        <p className="text-base text-gray-700">
-          Enquanto isso, se preferir, clique no botão abaixo para iniciar seu atendimento no WhatsApp.
-        </p>
-        <p className="text-sm text-gray-600">Você será redirecionado automaticamente em até 30 segundos.</p>
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
-          <Button
-            asChild
-            className="px-6 bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600"
+
+        <div className="mt-6 flex flex-col gap-3">
+          <a
+            href={`tel:${PHONE_TEL}`}
+            className="inline-flex items-center justify-center rounded-lg bg-libra-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
           >
-            <a
-              href="https://wa.me/5516997879837?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!"
-              rel="noreferrer"
-              target="_blank"
-            >
-              Iniciar atendimento no WhatsApp
-            </a>
-          </Button>
+            Ligar para {PHONE_DISPLAY}
+          </a>
+
+          <a
+            href={WHATSAPP_LINK}
+            rel="noreferrer"
+            target="_blank"
+            className="inline-flex items-center justify-center rounded-lg bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700"
+          >
+            Iniciar atendimento no WhatsApp
+          </a>
         </div>
-      </div>
-    </MobileLayout>
+
+        <p className="mt-5 text-sm text-gray-600">
+          Você será redirecionado automaticamente em até 30 segundos.
+        </p>
+      </section>
+    </main>
   );
 };
 

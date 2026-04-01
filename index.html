@@ -468,25 +468,5 @@
     
     <!-- LCP Optimized: Simplified image loading -->
     
-    <!-- Service Worker Registration after interaction -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        let swRegistered = false;
-        const registerSW = () => {
-          if (swRegistered) return;
-          swRegistered = true;
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('SW registered:', reg))
-            .catch(err => console.log('SW registration failed:', err));
-        };
-
-        ['mousedown', 'touchstart', 'keydown', 'scroll'].forEach(event => {
-          window.addEventListener(event, registerSW, { once: true, passive: true });
-        });
-
-        window.addEventListener('load', () => setTimeout(registerSW, 5000));
-      }
-    </script>
-
   </body>
 </html>

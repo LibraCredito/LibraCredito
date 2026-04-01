@@ -120,6 +120,7 @@ const App = () => {
                 } />
                 {devRoutes}
                 <Route path="/confirmacao" element={<Confirmacao />} />
+                <Route path="/confirmação" element={<Confirmacao />} />
                 <Route path="/atendimento" element={<Atendimento />} />
                 <Route path="/sucesso" element={<Sucesso />} />
                 <Route path="*" element={<NotFound />} />

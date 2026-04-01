@@ -218,6 +218,14 @@ const SimulacaoWizard = () => {
                 <p className="text-green-700">
                   Obrigado, {simulationResult.name}! Entraremos em contato pelo WhatsApp {simulationResult.phone} em até 24 horas úteis.
                 </p>
+                <a
+                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-green-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                  href="https://wa.me/5516997207767?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Iniciar atendimento no WhatsApp
+                </a>
                 <div className="mt-4 p-3 bg-green-100 rounded">
                   <h4 className="font-semibold text-green-800 mb-2">Dados recebidos:</h4>
                   <pre className="text-xs text-green-700 overflow-auto">

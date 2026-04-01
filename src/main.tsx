@@ -6,6 +6,31 @@ import './styles/overflow-fix.css';
 import { requestIdleCallback as requestIdleCb } from './utils/performance';
 import { LocalSimulationService } from '@/services/localSimulationService';
 
+const disableLegacyServiceWorkers = async () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch (error) {
+      console.warn('Falha ao desregistrar service workers antigos:', error);
+    }
+  }
+
+  if ('caches' in window) {
+    try {
+      const cacheKeys = await caches.keys();
+      const libraCaches = cacheKeys.filter((key) => key.includes('libra'));
+      await Promise.all(libraCaches.map((key) => caches.delete(key)));
+    } catch (error) {
+      console.warn('Falha ao limpar caches antigos da Libra:', error);
+    }
+  }
+};
+
 // Hidratação do HTML pré-renderizado para LCP otimizado
 const renderApp = () => {
   // Definir idioma da página
@@ -30,5 +55,5 @@ const renderApp = () => {
   }
 };
 
-renderApp();
+disableLegacyServiceWorkers().finally(renderApp);
 LocalSimulationService.resendPendingContacts();

@@ -14,7 +14,8 @@
  * - Compatibilidade total com componentes existentes
  */
 
-import { getAlertWebhookUrl } from '@/lib/env';
+import { getAlertWebhookUrl, getSecondaryWebhookUrl } from '@/lib/env';
+import { WebhookService } from '@/services/webhookService';
 import { validateEmail, validatePhone } from '@/utils/validations';
 import {
   SIMULATION_PLACEHOLDER_EMAIL,
@@ -1087,6 +1088,100 @@ export class LocalSimulationService {
       }
 
       console.log('✅ Contato processado com sucesso');
+
+      // Disparar webhook principal/secundário após o contato ser processado com sucesso.
+      // Falhas de webhook são não-críticas e não devem interromper a experiência do usuário.
+      try {
+        const normalizedNome = input.nomeCompleto.trim();
+        const normalizedEmail = input.email.trim().toLowerCase();
+        const normalizedTelefone = input.telefone.replace(/\D/g, '');
+        const normalizedCidade =
+          input.cidade?.trim() ||
+          fallbackSimulation?.cidade ||
+          simulationData?.cidade ||
+          'Não informado';
+        const valorEmprestimoNumber = Number(
+          input.valorDesejadoEmprestimo ??
+          fallbackSimulation?.valor_emprestimo ??
+          simulationData?.valor_emprestimo ??
+          0
+        );
+        const valorImovelNumber = Number(
+          input.valorImovelGarantia ??
+          fallbackSimulation?.valor_imovel ??
+          simulationData?.valor_imovel ??
+          0
+        );
+        const parcelasNumber = Number(
+          input.quantidadeParcelas ??
+          fallbackSimulation?.parcelas ??
+          simulationData?.parcelas ??
+          0
+        );
+        const parcelaInicialNumber = Number(
+          input.valorParcelaCalculada ??
+          fallbackSimulation?.parcela_inicial ??
+          simulationData?.parcela_inicial ??
+          0
+        );
+        const parcelaFinalNumber = Number(
+          input.valorParcelaCalculada ??
+          fallbackSimulation?.parcela_final ??
+          fallbackSimulation?.parcela_inicial ??
+          simulationData?.parcela_final ??
+          0
+        );
+        const tipoAmortizacaoValue = (
+          input.tipoAmortizacao ||
+          fallbackSimulation?.tipo_amortizacao ||
+          simulationData?.tipo_amortizacao ||
+          'PRICE'
+        ).toUpperCase();
+
+        const webhookPayload = {
+          simulationId: fallbackSimulation?.id || input.simulationId,
+          sessionId: input.sessionId,
+          nomeCompleto: normalizedNome,
+          email: normalizedEmail,
+          telefone: normalizedTelefone,
+          cidade: normalizedCidade || fallbackSimulation?.cidade || 'Não informado',
+          imovelProprio: input.imovelProprio,
+          observacoes: input.observacoes,
+          valorEmprestimo: valorEmprestimoNumber || 0,
+          valorImovel: valorImovelNumber || 0,
+          parcelas: parcelasNumber || 0,
+          tipoAmortizacao: tipoAmortizacaoValue,
+          valorParcela: parcelaInicialNumber || 0,
+          primeiraParcela: parcelaInicialNumber,
+          ultimaParcela: parcelaFinalNumber,
+          status: journeyStatus || fallbackSimulation?.status || 'interessado'
+        };
+
+        console.log('🪝 Enviando dados para webhook após contato:', {
+          simulationId: webhookPayload.simulationId,
+          email: webhookPayload.email
+        });
+
+        const webhookCalls = [WebhookService.sendSimulationData(webhookPayload)];
+        const secondaryUrl = getSecondaryWebhookUrl();
+        if (secondaryUrl) {
+          webhookCalls.push(
+            WebhookService.sendSimulationData(webhookPayload, { url: secondaryUrl })
+          );
+        }
+
+        const [primaryResult, secondaryResult] = await Promise.all(webhookCalls);
+
+        if (!primaryResult.success) {
+          console.warn('⚠️ Falha no webhook principal (não crítico):', primaryResult.message);
+        }
+
+        if (secondaryUrl && !secondaryResult?.success) {
+          console.warn('⚠️ Falha no webhook secundário (não crítico):', secondaryResult?.message);
+        }
+      } catch (webhookError) {
+        console.error('⚠️ Erro ao disparar webhook de contato (não crítico):', webhookError);
+      }
 
       // Após sucesso, tentar reenviar contatos pendentes (exceto quando já é uma tentativa)
       if (!options.isRetry) {

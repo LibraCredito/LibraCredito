@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import { useNavigate } from 'react-router-dom';
 import WaveSeparator from '@/components/ui/WaveSeparator';
+import { Button } from '@/components/ui/button';
 
 const Confirmacao = () => {
   const topAnchorRef = useRef<HTMLDivElement | null>(null);

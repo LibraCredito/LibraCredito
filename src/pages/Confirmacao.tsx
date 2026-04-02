@@ -89,16 +89,13 @@ const Confirmacao = () => {
         <p className="text-base text-gray-700">
           Fique atento ao telefone (16) 36007956 para nosso contato.
         </p>
-        <p className="text-sm text-gray-600">
-          Você será redirecionado automaticamente em até 30 segundos.
-        </p>
         <p className="text-sm font-semibold text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
           ⚡ Quer confirmar disponibilidade em até 10 minutos? Inicie agora no WhatsApp.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
           <Button
             asChild
-            className="px-8 py-6 text-base font-bold bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600 shadow-lg animate-pulse"
+            className="px-8 py-6 text-base font-bold bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600 shadow-lg animate-pulse [animation-duration:4s]"
           >
             <a
               href="https://wa.me/5516997207767?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!"

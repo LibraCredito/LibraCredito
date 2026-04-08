@@ -433,6 +433,53 @@ export class LocalSimulationService {
       // 8. Armazenar localmente como backup
       this.saveSimulationLocally(result, input);
 
+      // 9. Disparar webhook de simulação para iniciar automações imediatamente
+      // Falhas são não-críticas e não devem interromper o fluxo principal da simulação.
+      try {
+        const simulationWebhookPayload = {
+          simulationId: result.userJourneyId || result.id,
+          sessionId: input.sessionId,
+          nomeCompleto: input.nomeCompleto,
+          email: input.email,
+          telefone: input.telefone.replace(/\D/g, ''),
+          cidade: input.cidade,
+          valorEmprestimo: input.valorEmprestimo,
+          valorImovel: input.valorImovel,
+          parcelas: input.parcelas,
+          tipoAmortizacao: input.tipoAmortizacao,
+          valorParcela: result.valor,
+          primeiraParcela: result.primeiraParcela || result.valor,
+          ultimaParcela: result.ultimaParcela || result.valor,
+          status: 'simulacao_realizada'
+        };
+
+        console.log('🪝 Enviando webhook de simulação:', {
+          simulationId: simulationWebhookPayload.simulationId,
+          sessionId: simulationWebhookPayload.sessionId
+        });
+
+        const webhookCalls = [WebhookService.sendSimulationData(simulationWebhookPayload)];
+        const secondaryUrl = getSecondaryWebhookUrl();
+
+        if (secondaryUrl) {
+          webhookCalls.push(
+            WebhookService.sendSimulationData(simulationWebhookPayload, { url: secondaryUrl })
+          );
+        }
+
+        const [primaryResult, secondaryResult] = await Promise.all(webhookCalls);
+
+        if (!primaryResult.success) {
+          console.warn('⚠️ Falha no webhook principal de simulação (não crítico):', primaryResult.message);
+        }
+
+        if (secondaryUrl && !secondaryResult?.success) {
+          console.warn('⚠️ Falha no webhook secundário de simulação (não crítico):', secondaryResult?.message);
+        }
+      } catch (webhookError) {
+        console.error('⚠️ Erro ao disparar webhook de simulação (não crítico):', webhookError);
+      }
+
       console.log('✅ Simulação local realizada com sucesso:', result);
       return result;
 

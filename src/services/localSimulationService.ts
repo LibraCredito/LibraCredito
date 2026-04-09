@@ -110,6 +110,14 @@ export interface SessionGroupWithJourney {
   primary_session_id?: string | null;
 }
 
+interface PendingWebhookEntry {
+  id: string;
+  createdAt: string;
+  target: 'primary' | 'secondary';
+  payload: Parameters<typeof WebhookService.sendSimulationData>[0];
+  attempt: number;
+}
+
 const countJourneySignals = (journey?: Partial<UserJourneyData> | null): number => {
   if (!journey) return 0;
   const trackedKeys: (keyof UserJourneyData)[] = [
@@ -155,6 +163,8 @@ const pickBetterJourney = (
 
 // Classe principal do serviço local
 export class LocalSimulationService {
+  private static readonly WEBHOOK_QUEUE_KEY = 'libra_pending_webhooks';
+  private static readonly WEBHOOK_MAX_ATTEMPTS = 5;
 
   /**
    * Busca jornadas em lotes para evitar erros de URL muito longas no Supabase
@@ -433,52 +443,33 @@ export class LocalSimulationService {
       // 8. Armazenar localmente como backup
       this.saveSimulationLocally(result, input);
 
-      // 9. Disparar webhook de simulação para iniciar automações imediatamente
-      // Falhas são não-críticas e não devem interromper o fluxo principal da simulação.
-      try {
-        const simulationWebhookPayload = {
-          simulationId: result.userJourneyId || result.id,
-          sessionId: input.sessionId,
-          nomeCompleto: input.nomeCompleto,
-          email: input.email,
-          telefone: input.telefone.replace(/\D/g, ''),
-          cidade: input.cidade,
-          valorEmprestimo: input.valorEmprestimo,
-          valorImovel: input.valorImovel,
-          parcelas: input.parcelas,
-          tipoAmortizacao: input.tipoAmortizacao,
-          valorParcela: result.valor,
-          primeiraParcela: result.primeiraParcela || result.valor,
-          ultimaParcela: result.ultimaParcela || result.valor,
-          status: 'simulacao_realizada'
-        };
+      // 9. Disparar webhook de simulação sem bloquear o retorno para a interface
+      const simulationWebhookPayload = {
+        eventType: 'simulation' as const,
+        simulationId: result.userJourneyId || result.id,
+        sessionId: input.sessionId,
+        nomeCompleto: input.nomeCompleto,
+        email: input.email,
+        telefone: input.telefone.replace(/\D/g, ''),
+        cidade: input.cidade,
+        valorEmprestimo: input.valorEmprestimo,
+        valorImovel: input.valorImovel,
+        parcelas: input.parcelas,
+        tipoAmortizacao: input.tipoAmortizacao,
+        valorParcela: result.valor,
+        primeiraParcela: result.primeiraParcela || result.valor,
+        ultimaParcela: result.ultimaParcela || result.valor,
+        status: 'simulacao_realizada'
+      };
 
-        console.log('🪝 Enviando webhook de simulação:', {
-          simulationId: simulationWebhookPayload.simulationId,
-          sessionId: simulationWebhookPayload.sessionId
+      console.log('🪝 Agendando webhook de simulação:', {
+        simulationId: simulationWebhookPayload.simulationId,
+        sessionId: simulationWebhookPayload.sessionId
+      });
+      void this.dispatchWebhooksReliably(simulationWebhookPayload, 'simulação')
+        .catch(error => {
+          console.error('⚠️ Falha inesperada no agendamento do webhook de simulação:', error);
         });
-
-        const webhookCalls = [WebhookService.sendSimulationData(simulationWebhookPayload)];
-        const secondaryUrl = getSecondaryWebhookUrl();
-
-        if (secondaryUrl) {
-          webhookCalls.push(
-            WebhookService.sendSimulationData(simulationWebhookPayload, { url: secondaryUrl })
-          );
-        }
-
-        const [primaryResult, secondaryResult] = await Promise.all(webhookCalls);
-
-        if (!primaryResult.success) {
-          console.warn('⚠️ Falha no webhook principal de simulação (não crítico):', primaryResult.message);
-        }
-
-        if (secondaryUrl && !secondaryResult?.success) {
-          console.warn('⚠️ Falha no webhook secundário de simulação (não crítico):', secondaryResult?.message);
-        }
-      } catch (webhookError) {
-        console.error('⚠️ Erro ao disparar webhook de simulação (não crítico):', webhookError);
-      }
 
       console.log('✅ Simulação local realizada com sucesso:', result);
       return result;
@@ -1136,8 +1127,7 @@ export class LocalSimulationService {
 
       console.log('✅ Contato processado com sucesso');
 
-      // Disparar webhook principal/secundário após o contato ser processado com sucesso.
-      // Falhas de webhook são não-críticas e não devem interromper a experiência do usuário.
+      // Disparar webhook principal/secundário sem bloquear a navegação de sucesso.
       try {
         const normalizedNome = input.nomeCompleto.trim();
         const normalizedEmail = input.email.trim().toLowerCase();
@@ -1186,6 +1176,7 @@ export class LocalSimulationService {
         ).toUpperCase();
 
         const webhookPayload = {
+          eventType: 'contact' as const,
           simulationId: fallbackSimulation?.id || input.simulationId,
           sessionId: input.sessionId,
           nomeCompleto: normalizedNome,
@@ -1204,28 +1195,14 @@ export class LocalSimulationService {
           status: journeyStatus || fallbackSimulation?.status || 'interessado'
         };
 
-        console.log('🪝 Enviando dados para webhook após contato:', {
+        console.log('🪝 Agendando dados para webhook após contato:', {
           simulationId: webhookPayload.simulationId,
           email: webhookPayload.email
         });
-
-        const webhookCalls = [WebhookService.sendSimulationData(webhookPayload)];
-        const secondaryUrl = getSecondaryWebhookUrl();
-        if (secondaryUrl) {
-          webhookCalls.push(
-            WebhookService.sendSimulationData(webhookPayload, { url: secondaryUrl })
-          );
-        }
-
-        const [primaryResult, secondaryResult] = await Promise.all(webhookCalls);
-
-        if (!primaryResult.success) {
-          console.warn('⚠️ Falha no webhook principal (não crítico):', primaryResult.message);
-        }
-
-        if (secondaryUrl && !secondaryResult?.success) {
-          console.warn('⚠️ Falha no webhook secundário (não crítico):', secondaryResult?.message);
-        }
+        void this.dispatchWebhooksReliably(webhookPayload, 'contato')
+          .catch(error => {
+            console.error('⚠️ Falha inesperada no agendamento do webhook de contato:', error);
+          });
       } catch (webhookError) {
         console.error('⚠️ Erro ao disparar webhook de contato (não crítico):', webhookError);
       }
@@ -1558,6 +1535,114 @@ export class LocalSimulationService {
     } catch (error) {
       console.warn('⚠️ Erro ao remover contato localmente:', error);
     }
+  }
+
+  private static getPendingWebhookQueue(): PendingWebhookEntry[] {
+    try {
+      const raw = localStorage.getItem(this.WEBHOOK_QUEUE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn('⚠️ Erro ao carregar fila de webhooks:', error);
+      return [];
+    }
+  }
+
+  private static savePendingWebhookQueue(entries: PendingWebhookEntry[]): void {
+    try {
+      if (!entries.length) {
+        localStorage.removeItem(this.WEBHOOK_QUEUE_KEY);
+        return;
+      }
+      localStorage.setItem(this.WEBHOOK_QUEUE_KEY, JSON.stringify(entries.slice(0, 200)));
+    } catch (error) {
+      console.warn('⚠️ Erro ao salvar fila de webhooks:', error);
+    }
+  }
+
+  private static enqueueWebhookFailure(
+    target: PendingWebhookEntry['target'],
+    payload: Parameters<typeof WebhookService.sendSimulationData>[0],
+    attempt: number
+  ): void {
+    if (attempt >= this.WEBHOOK_MAX_ATTEMPTS) {
+      console.error('❌ Webhook descartado após máximo de tentativas:', {
+        target,
+        simulationId: payload.simulationId
+      });
+      return;
+    }
+
+    const queue = this.getPendingWebhookQueue();
+    queue.push({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: new Date().toISOString(),
+      target,
+      payload,
+      attempt
+    });
+    this.savePendingWebhookQueue(queue);
+    console.warn('📥 Webhook adicionado à fila de retentativa:', {
+      target,
+      simulationId: payload.simulationId,
+      attempt
+    });
+  }
+
+  private static async dispatchWebhooksReliably(
+    payload: Parameters<typeof WebhookService.sendSimulationData>[0],
+    context: string
+  ): Promise<void> {
+    await this.flushPendingWebhooks();
+
+    const secondaryUrl = getSecondaryWebhookUrl();
+    const [primaryResult, secondaryResult] = await Promise.all([
+      WebhookService.sendSimulationData(payload),
+      secondaryUrl
+        ? WebhookService.sendSimulationData(payload, { url: secondaryUrl })
+        : Promise.resolve(undefined)
+    ]);
+
+    if (!primaryResult.success) {
+      console.warn(`⚠️ Falha no webhook principal de ${context}:`, primaryResult.message);
+      this.enqueueWebhookFailure('primary', payload, 1);
+    }
+
+    if (secondaryUrl && secondaryResult && !secondaryResult.success) {
+      console.warn(`⚠️ Falha no webhook secundário de ${context}:`, secondaryResult.message);
+      this.enqueueWebhookFailure('secondary', payload, 1);
+    }
+  }
+
+  private static async flushPendingWebhooks(): Promise<void> {
+    const queue = this.getPendingWebhookQueue();
+    if (!queue.length) return;
+
+    const remaining: PendingWebhookEntry[] = [];
+    for (const entry of queue) {
+      try {
+        const secondaryUrl = getSecondaryWebhookUrl();
+        if (entry.target === 'secondary' && !secondaryUrl) {
+          continue;
+        }
+
+        const result = await WebhookService.sendSimulationData(entry.payload, {
+          ...(entry.target === 'secondary' && secondaryUrl ? { url: secondaryUrl } : {})
+        });
+
+        if (!result.success) {
+          remaining.push({ ...entry, attempt: entry.attempt + 1 });
+        }
+      } catch (error) {
+        console.warn('⚠️ Erro ao reprocessar webhook pendente:', error);
+        remaining.push({ ...entry, attempt: entry.attempt + 1 });
+      }
+    }
+
+    this.savePendingWebhookQueue(
+      remaining.filter(entry => entry.attempt <= this.WEBHOOK_MAX_ATTEMPTS)
+    );
   }
 
   /**

@@ -22,6 +22,8 @@
 import { resolveWebhookUrl, type WebhookUrl } from '@/lib/env';
 
 export interface WebhookPayload {
+  eventId?: string;
+  eventType?: 'simulation' | 'contact';
   // Dados da simulação
   simulationId: string;
   sessionId: string;
@@ -59,6 +61,7 @@ export interface WebhookConfig {
   url: WebhookUrl;
   timeout?: number;
   retries?: number;
+  retryOnClientError?: boolean;
   headers?: Record<string, string>;
 }
 
@@ -71,9 +74,9 @@ export interface WebhookResult {
 }
 
 export class WebhookService {
-  private static readonly DEFAULT_TIMEOUT = 10000; // 10 segundos
-  private static readonly DEFAULT_RETRIES = 3;
-  private static readonly RETRY_DELAY = 1000; // 1 segundo
+  private static readonly DEFAULT_TIMEOUT = 5000; // 5 segundos
+  private static readonly DEFAULT_RETRIES = 2;
+  private static readonly RETRY_DELAY = 400; // 0,4 segundo
   
   /**
    * Enviar dados da simulação para webhook
@@ -99,6 +102,8 @@ export class WebhookService {
     // Preparar payload completo
     const payload: WebhookPayload = {
       ...simulationData,
+      eventId: simulationData.eventId || crypto.randomUUID(),
+      eventType: simulationData.eventType || 'contact',
       timestamp: new Date().toISOString(),
       source: 'libra-credito-landing',
       simulationId: simulationData.simulationId || '',
@@ -137,12 +142,19 @@ export class WebhookService {
           return result;
         }
         
+        const shouldRetry =
+          this.isRetryableStatus(result.statusCode) || Boolean(config?.retryOnClientError);
+
+        if (!shouldRetry) {
+          return result;
+        }
+
         lastError = result;
         
         // Se não é o último attempt, aguardar antes de tentar novamente
         if (attempt < maxRetries) {
           console.log(`⏳ Tentativa ${attempt} falhou, aguardando ${this.RETRY_DELAY}ms...`);
-          await this.delay(this.RETRY_DELAY * attempt); // Backoff exponencial
+          await this.delay(this.RETRY_DELAY * 2 ** (attempt - 1)); // Backoff exponencial
         }
         
       } catch (error) {
@@ -156,7 +168,7 @@ export class WebhookService {
         console.error(`❌ Erro na tentativa ${attempt}:`, error);
         
         if (attempt < maxRetries) {
-          await this.delay(this.RETRY_DELAY * attempt);
+          await this.delay(this.RETRY_DELAY * 2 ** (attempt - 1));
         }
       }
     }
@@ -195,6 +207,7 @@ export class WebhookService {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
+        keepalive: true,
         signal: controller.signal
       });
       
@@ -288,6 +301,11 @@ export class WebhookService {
    */
   private static delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private static isRetryableStatus(statusCode?: number): boolean {
+    if (!statusCode) return true;
+    return statusCode === 408 || statusCode === 429 || statusCode >= 500;
   }
 }
 

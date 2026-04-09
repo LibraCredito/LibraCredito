@@ -73,6 +73,15 @@ Criar no GTM (ou via dataLayer + GTM):
 - Form ID / botão CTA / seletor de elemento
 - Gatilhos para páginas-chave: `/`, `/simulacao`, `/sucesso`, `/confirmacao`
 
+
+## 1.5 Definir estratégia única de GA4 (obrigatório)
+
+Hoje o projeto pode operar com **GA4 direto via `gtag.js`** e também via **GTM**.  
+Para não duplicar métricas, escolha **apenas 1 caminho principal**:
+
+- Opção A: manter GA4 no `gtag.js` e não disparar GA4 no GTM; ou
+- Opção B (recomendada para governança): centralizar GA4 no GTM e remover `gtag.js` manual.
+
 ---
 
 ## Fase 2 — GA4 (coleta e conversões)

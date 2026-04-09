@@ -7,8 +7,8 @@
 
 - O projeto **já carrega Google Tag Manager (GTM)** no HTML principal com o container `GTM-K4FVVD8`.
 - Há um segundo HTML utilitário (`clear-localstorage.html`) que também injeta o mesmo GTM.
-- **Não há implementação explícita de GA4 via `gtag.js`** no frontend atual.
-- Existe variável de ambiente `VITE_GA_TRACKING_ID`, mas ela está apenas documentada e **não é utilizada no código**.
+- **Há implementação explícita de GA4 via `gtag.js`** no `index.html` com o ID `G-BETJ68WJBM`.
+- Existe variável de ambiente `VITE_GA_TRACKING_ID`, porém a implementação ativa no momento está hardcoded no HTML (`G-BETJ68WJBM`).
 - O projeto usa **Vercel Analytics** em produção (cliente e SSR), em paralelo ao GTM.
 - Também existe **Meta Pixel** hardcoded no `index.html`.
 
@@ -27,12 +27,12 @@
 ## 2) Google Analytics (GA4)
 
 ### Estado atual encontrado
-- Não existe snippet `gtag('config', 'G-...')` no HTML principal.
-- Não foi encontrada integração direta de GA4 via código React.
+- Existe snippet `gtag('config', 'G-BETJ68WJBM')` no HTML principal.
+- A integração GA4 atual foi feita diretamente no HTML (não via código React).
 - Existe variável `VITE_GA_TRACKING_ID` em `.env` e `.env.example`, mas sem uso ativo no app.
 - O README sinaliza GA4 como item futuro/pendente.
 
-**Conclusão prática:** no estado atual, GA4 só estará ativo se estiver configurado **dentro do container GTM** publicado em `GTM-K4FVVD8`.
+**Conclusão prática:** no estado atual, GA4 pode enviar dados tanto pela integração direta `gtag.js` quanto por tags no GTM. É essencial evitar duplicidade de `page_view` e eventos.
 
 ## 3) Outros trackers relacionados
 
@@ -86,6 +86,7 @@ Com base nos prints enviados após a primeira versão da auditoria:
 3. **GA Tracking ID não conectado ao runtime:** risco de falsa sensação de configuração.
 4. **Consentimento LGPD/Cookie Mode:** não há evidência no bootstrap atual de `Consent Mode` do Google antes do disparo das tags.
 5. **Múltiplas fontes de analytics (GTM + Vercel + Pixel):** sem matriz clara de ownership, há risco de duplicidade/inconsistência de eventos.
+6. **Risco de duplicidade por dois caminhos de GA4 (gtag + GTM):** caso ambos disparem `page_view` e eventos, métricas podem inflar.
 
 ## Plano recomendado para transição correta (GTM/GA)
 

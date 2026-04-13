@@ -17,6 +17,7 @@
 import { getAlertWebhookUrl, getSecondaryWebhookUrl } from '@/lib/env';
 import { WebhookService } from '@/services/webhookService';
 import { validateEmail, validatePhone } from '@/utils/validations';
+import { buildPloomesOriginLink } from '@/utils/ploomesOriginLink';
 import {
   SIMULATION_PLACEHOLDER_EMAIL,
   SIMULATION_PLACEHOLDER_NAME,
@@ -162,6 +163,12 @@ const pickBetterJourney = (
 };
 
 // Classe principal do serviço local
+const PLOOMES_ORIGIN_FIELD_KEY =
+  (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
+const PLOOMES_STAGE_ID = Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
+const PLOOMES_ENABLE_CUSTOM_FIELDS =
+  String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS || '').toLowerCase() === 'true';
+
 export class LocalSimulationService {
   private static readonly WEBHOOK_QUEUE_KEY = 'libra_pending_webhooks';
   private static readonly WEBHOOK_MAX_ATTEMPTS = 5;
@@ -562,6 +569,16 @@ export class LocalSimulationService {
       }
 
       // Preparar payload para API Ploomes com validação de tipos
+      const originLink = buildPloomesOriginLink({
+        utm_source: input.utm_source || null,
+        utm_medium: input.utm_medium || null,
+        utm_campaign: input.utm_campaign || null,
+        utm_term: input.utm_term || null,
+        utm_content: input.utm_content || null,
+        landing_page: input.landing_page || null,
+        referrer: input.referrer || null
+      });
+
       const ploomesPayload = {
         cidade: input.cidade?.trim() || simulationData?.cidade || 'Não informado',
         valorDesejadoEmprestimo: Number(input.valorDesejadoEmprestimo || simulationData?.valor_emprestimo || 0),
@@ -582,6 +599,22 @@ export class LocalSimulationService {
         landing_page: input.landing_page || null,
         referrer: input.referrer || null
       };
+
+
+      if (PLOOMES_ENABLE_CUSTOM_FIELDS) {
+        (ploomesPayload as Record<string, unknown>)['Link de origem'] = originLink;
+        (ploomesPayload as Record<string, unknown>)['Link de origem \n'] = originLink;
+        (ploomesPayload as Record<string, unknown>).linkOrigem = originLink;
+        (ploomesPayload as Record<string, unknown>).link_origem = originLink;
+
+        if (PLOOMES_ORIGIN_FIELD_KEY) {
+          (ploomesPayload as Record<string, unknown>)[PLOOMES_ORIGIN_FIELD_KEY] = originLink;
+        }
+
+        if (PLOOMES_STAGE_ID) {
+          (ploomesPayload as Record<string, unknown>).StageId = PLOOMES_STAGE_ID;
+        }
+      }
 
       // Validar campos obrigatórios
       if (!ploomesPayload.cidade || ploomesPayload.cidade.trim() === '' || ploomesPayload.cidade === 'Não informado') {

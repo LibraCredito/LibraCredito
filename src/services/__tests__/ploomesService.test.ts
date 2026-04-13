@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 describe('PloomesService', () => {
-  it('sends UTM params in payload', async () => {
+  it('sends core payload and UTM params', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ status: true, msg: '', retorno: { nomeCompleto: '', email: '' } })
@@ -39,6 +39,7 @@ describe('PloomesService', () => {
     expect(fetchMock).toHaveBeenCalled();
     const [, options] = fetchMock.mock.calls[0];
     const body = JSON.parse((options as any).body);
+
     expect(body).toMatchObject({
       utm_source: 'google',
       utm_medium: 'cpc',
@@ -48,6 +49,10 @@ describe('PloomesService', () => {
       landing_page: 'https://example.com',
       referrer: 'https://referrer.com'
     });
+
+    expect(body['Link de origem']).toBeUndefined();
+    expect(body['Link de origem \n']).toBeUndefined();
+    expect(body.linkOrigem).toBeUndefined();
+    expect(body.link_origem).toBeUndefined();
   });
 });
-

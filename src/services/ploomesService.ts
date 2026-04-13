@@ -18,8 +18,11 @@
  * - Bloqueio de duplicidade: 7 dias por email
  */
 
+import { buildPloomesOriginLink } from '@/utils/ploomesOriginLink';
+
 // Interface para payload do Ploomes
 export interface PloomesPayload {
+  [key: string]: unknown;
   cidade: string;
   valorDesejadoEmprestimo: number;
   valorImovelGarantia: number;
@@ -38,6 +41,10 @@ export interface PloomesPayload {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  'Link de origem'?: string;
+  'Link de origem \n'?: string;
+  linkOrigem?: string;
+  link_origem?: string;
 }
 
 // Interface para resposta do Ploomes
@@ -65,6 +72,12 @@ const IMOVEL_MAP: Record<string, 'Imóvel próprio' | 'Imóvel de terceiro'> = {
 
 export class PloomesService {
   private static readonly API_URL = 'https://api-ploomes.vercel.app/cadastro/online/env';
+  private static readonly ORIGIN_FIELD_KEY =
+    (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
+  private static readonly STAGE_ID =
+    Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
+  private static readonly ENABLE_CUSTOM_FIELDS =
+    String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS || '').toLowerCase() === 'true';
   
   /**
    * Cadastra uma proposta no Ploomes
@@ -92,6 +105,16 @@ export class PloomesService {
       console.log('🚀 Iniciando cadastro no Ploomes:', data);
       
       // Preparar payload com valores corretos
+      const originLink = buildPloomesOriginLink({
+        utm_source: data.utm_source,
+        utm_medium: data.utm_medium,
+        utm_campaign: data.utm_campaign,
+        utm_term: data.utm_term,
+        utm_content: data.utm_content,
+        landing_page: data.landing_page,
+        referrer: data.referrer
+      });
+
       const payload: PloomesPayload = {
         cidade: data.cidade,
         valorDesejadoEmprestimo: this.limparValorMonetario(data.valorEmprestimo),
@@ -113,6 +136,22 @@ export class PloomesService {
         referrer: data.referrer || null
       };
       
+
+      if (this.ENABLE_CUSTOM_FIELDS) {
+        payload['Link de origem'] = originLink;
+        payload['Link de origem \n'] = originLink;
+        payload.linkOrigem = originLink;
+        payload.link_origem = originLink;
+
+        if (this.ORIGIN_FIELD_KEY) {
+          payload[this.ORIGIN_FIELD_KEY] = originLink;
+        }
+
+        if (this.STAGE_ID) {
+          payload.StageId = this.STAGE_ID;
+        }
+      }
+
       console.log('📤 Payload formatado para Ploomes:', payload);
       
       // Fazer requisição

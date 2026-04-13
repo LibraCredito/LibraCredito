@@ -289,7 +289,14 @@ export class SimulationService {
           nomeCompleto: input.nomeCompleto,
           email: input.email,
           telefone: input.telefone,
-          imovelProprio: input.imovelProprio
+          imovelProprio: input.imovelProprio,
+          utm_source: simulacaoCompleta.utm_source || null,
+          utm_medium: simulacaoCompleta.utm_medium || null,
+          utm_campaign: simulacaoCompleta.utm_campaign || null,
+          utm_term: simulacaoCompleta.utm_term || null,
+          utm_content: simulacaoCompleta.utm_content || null,
+          landing_page: simulacaoCompleta.landing_page || null,
+          referrer: simulacaoCompleta.referrer || null
         });
         
         if (ploomesResponse.status) {

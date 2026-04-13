@@ -18,6 +18,8 @@
  * - Bloqueio de duplicidade: 7 dias por email
  */
 
+import { buildPloomesOriginLink } from '@/utils/ploomesOriginLink';
+
 // Interface para payload do Ploomes
 export interface PloomesPayload {
   cidade: string;
@@ -38,6 +40,7 @@ export interface PloomesPayload {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  'Link de origem \n'?: string;
 }
 
 // Interface para resposta do Ploomes
@@ -110,7 +113,16 @@ export class PloomesService {
         utm_term: data.utm_term || null,
         utm_content: data.utm_content || null,
         landing_page: data.landing_page || null,
-        referrer: data.referrer || null
+        referrer: data.referrer || null,
+        'Link de origem \n': buildPloomesOriginLink({
+          utm_source: data.utm_source,
+          utm_medium: data.utm_medium,
+          utm_campaign: data.utm_campaign,
+          utm_term: data.utm_term,
+          utm_content: data.utm_content,
+          landing_page: data.landing_page,
+          referrer: data.referrer
+        })
       };
       
       console.log('📤 Payload formatado para Ploomes:', payload);

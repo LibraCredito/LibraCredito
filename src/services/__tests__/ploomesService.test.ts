@@ -48,6 +48,13 @@ describe('PloomesService', () => {
       landing_page: 'https://example.com',
       referrer: 'https://referrer.com'
     });
+
+    expect(body['Link de origem \n']).toContain('Origem: google / cpc');
+    expect(body['Link de origem \n']).toContain('Campanha: camp');
+    expect(body['Link de origem \n']).toContain('Grupo: term');
+    expect(body['Link de origem \n']).toContain('Anúncio: content');
+    expect(body['Link de origem \n']).toContain('landing_page: https://example.com');
+    expect(body['Link de origem \n']).toContain('referrer: https://referrer.com');
   });
 });
 

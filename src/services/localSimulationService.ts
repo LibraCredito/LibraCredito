@@ -17,6 +17,7 @@
 import { getAlertWebhookUrl, getSecondaryWebhookUrl } from '@/lib/env';
 import { WebhookService } from '@/services/webhookService';
 import { validateEmail, validatePhone } from '@/utils/validations';
+import { buildPloomesOriginLink } from '@/utils/ploomesOriginLink';
 import {
   SIMULATION_PLACEHOLDER_EMAIL,
   SIMULATION_PLACEHOLDER_NAME,
@@ -580,7 +581,16 @@ export class LocalSimulationService {
         utm_term: input.utm_term || null,
         utm_content: input.utm_content || null,
         landing_page: input.landing_page || null,
-        referrer: input.referrer || null
+        referrer: input.referrer || null,
+        'Link de origem \n': buildPloomesOriginLink({
+          utm_source: input.utm_source || null,
+          utm_medium: input.utm_medium || null,
+          utm_campaign: input.utm_campaign || null,
+          utm_term: input.utm_term || null,
+          utm_content: input.utm_content || null,
+          landing_page: input.landing_page || null,
+          referrer: input.referrer || null
+        })
       };
 
       // Validar campos obrigatórios

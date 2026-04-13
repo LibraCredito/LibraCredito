@@ -163,6 +163,9 @@ const pickBetterJourney = (
 };
 
 // Classe principal do serviço local
+const PLOOMES_ORIGIN_FIELD_KEY =
+  (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
+
 export class LocalSimulationService {
   private static readonly WEBHOOK_QUEUE_KEY = 'libra_pending_webhooks';
   private static readonly WEBHOOK_MAX_ATTEMPTS = 5;
@@ -595,6 +598,11 @@ export class LocalSimulationService {
         'Link de origem': originLink,
         'Link de origem \n': originLink
       };
+
+
+      if (PLOOMES_ORIGIN_FIELD_KEY) {
+        (ploomesPayload as Record<string, unknown>)[PLOOMES_ORIGIN_FIELD_KEY] = originLink;
+      }
 
       // Validar campos obrigatórios
       if (!ploomesPayload.cidade || ploomesPayload.cidade.trim() === '' || ploomesPayload.cidade === 'Não informado') {

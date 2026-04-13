@@ -22,6 +22,7 @@ import { buildPloomesOriginLink } from '@/utils/ploomesOriginLink';
 
 // Interface para payload do Ploomes
 export interface PloomesPayload {
+  [key: string]: unknown;
   cidade: string;
   valorDesejadoEmprestimo: number;
   valorImovelGarantia: number;
@@ -69,6 +70,8 @@ const IMOVEL_MAP: Record<string, 'Imóvel próprio' | 'Imóvel de terceiro'> = {
 
 export class PloomesService {
   private static readonly API_URL = 'https://api-ploomes.vercel.app/cadastro/online/env';
+  private static readonly ORIGIN_FIELD_KEY =
+    (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
   
   /**
    * Cadastra uma proposta no Ploomes
@@ -129,6 +132,11 @@ export class PloomesService {
         'Link de origem \n': originLink
       };
       
+
+      if (this.ORIGIN_FIELD_KEY) {
+        payload[this.ORIGIN_FIELD_KEY] = originLink;
+      }
+
       console.log('📤 Payload formatado para Ploomes:', payload);
       
       // Fazer requisição

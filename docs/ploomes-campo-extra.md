@@ -87,3 +87,12 @@ Para reduzir manutenção, vale refatorar para ter um único serviço de envio a
 - Toda transformação de payload fica centralizada em `PloomesService`.
 - Menor chance de esquecer campos novos em caminhos diferentes.
 
+
+
+## Configuração por Key do campo no Ploomes
+
+Se o campo não aparecer pelo nome \`Link de origem\`, configure a key técnica do campo criado no Ploomes via variável de ambiente:
+
+- \`VITE_PLOOMES_ORIGIN_FIELD_KEY=quote_SEU_FIELD_KEY\`
+
+Com isso, além de enviar \`Link de origem\`, o payload passa a enviar também o valor nesse key técnico.

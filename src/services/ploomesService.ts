@@ -72,6 +72,8 @@ export class PloomesService {
   private static readonly API_URL = 'https://api-ploomes.vercel.app/cadastro/online/env';
   private static readonly ORIGIN_FIELD_KEY =
     (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
+  private static readonly STAGE_ID =
+    Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
   
   /**
    * Cadastra uma proposta no Ploomes
@@ -135,6 +137,10 @@ export class PloomesService {
 
       if (this.ORIGIN_FIELD_KEY) {
         payload[this.ORIGIN_FIELD_KEY] = originLink;
+      }
+
+      if (this.STAGE_ID) {
+        payload.StageId = this.STAGE_ID;
       }
 
       console.log('📤 Payload formatado para Ploomes:', payload);

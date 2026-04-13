@@ -165,6 +165,7 @@ const pickBetterJourney = (
 // Classe principal do serviço local
 const PLOOMES_ORIGIN_FIELD_KEY =
   (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
+const PLOOMES_STAGE_ID = Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
 
 export class LocalSimulationService {
   private static readonly WEBHOOK_QUEUE_KEY = 'libra_pending_webhooks';
@@ -602,6 +603,10 @@ export class LocalSimulationService {
 
       if (PLOOMES_ORIGIN_FIELD_KEY) {
         (ploomesPayload as Record<string, unknown>)[PLOOMES_ORIGIN_FIELD_KEY] = originLink;
+      }
+
+      if (PLOOMES_STAGE_ID) {
+        (ploomesPayload as Record<string, unknown>).StageId = PLOOMES_STAGE_ID;
       }
 
       // Validar campos obrigatórios

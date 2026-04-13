@@ -96,3 +96,7 @@ Se o campo não aparecer pelo nome \`Link de origem\`, configure a key técnica 
 - \`VITE_PLOOMES_ORIGIN_FIELD_KEY=quote_SEU_FIELD_KEY\`
 
 Com isso, além de enviar \`Link de origem\`, o payload passa a enviar também o valor nesse key técnico.
+
+
+- Se os campos forem dependentes do estágio no Ploomes, configure também:
+  - `VITE_PLOOMES_STAGE_ID=228324`

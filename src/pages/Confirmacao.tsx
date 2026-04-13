@@ -80,27 +80,28 @@ const Confirmacao = () => {
     <MobileLayout>
       <div ref={topAnchorRef} aria-hidden="true" />
       <WaveSeparator variant="hero" height="md" inverted />
-      <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-6 bg-white">
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center space-y-6 bg-white">
 
-        <h1 className="text-2xl font-bold text-libra-navy">✅ Simulação enviada com sucesso</h1>
-        <p className="text-base text-gray-700">
+        <h1 className="max-w-2xl text-2xl font-bold text-libra-navy">✅ Simulação enviada com sucesso</h1>
+        <p className="max-w-2xl text-base text-gray-700">
           Recebemos seus dados e em breve, um dos nossos analistas entrará em contato com você.
         </p>
-        <p className="text-base text-gray-700">
+        <p className="max-w-2xl text-base text-gray-700">
           Fique atento ao telefone (16) 36007956 para nosso contato.
         </p>
-        <p className="text-sm font-semibold text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+        <p className="max-w-2xl text-sm font-semibold text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
           ⚡ Quer confirmar disponibilidade em até 10 minutos? Inicie agora no WhatsApp.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+        <div className="mt-2 flex w-full max-w-2xl flex-col gap-4">
           <Button
             asChild
-            className="px-8 py-6 text-base font-bold bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600 shadow-lg animate-pulse [animation-duration:4s]"
+            className="h-auto w-full whitespace-normal px-5 py-4 text-sm font-bold leading-relaxed bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600 shadow-lg transition-transform duration-300 hover:scale-[1.01] sm:px-8 sm:py-6 sm:text-base sm:leading-normal sm:animate-pulse sm:[animation-duration:4s]"
           >
             <a
               href="https://wa.me/5516997207767?text=Ol%C3%A1%20Libra%20Cr%C3%A9dito%2C%20quero%20iniciar%20meu%20atendimento!"
               rel="noreferrer"
               target="_blank"
+              className="block w-full text-center"
             >
               🚀 Confirmar disponibilidade em 10 min no WhatsApp
             </a>

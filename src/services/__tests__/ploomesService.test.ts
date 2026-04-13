@@ -60,6 +60,8 @@ describe('PloomesService', () => {
 
     const originLink = getOriginLink(body);
     expect(body['Link de origem']).toBeTypeOf('string');
+    expect(body.linkOrigem).toBe(body['Link de origem']);
+    expect(body.link_origem).toBe(body['Link de origem']);
     expect(originLink).toContain('Origem: google / cpc');
     expect(originLink).toContain('Campanha: camp');
     expect(originLink).toContain('Grupo: term');

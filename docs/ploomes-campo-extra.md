@@ -100,3 +100,5 @@ Com isso, além de enviar \`Link de origem\`, o payload passa a enviar também o
 
 - Se os campos forem dependentes do estágio no Ploomes, configure também:
   - `VITE_PLOOMES_STAGE_ID=228324`
+
+- Observação: se o campo "Link de origem" estiver em `EntityId = 2` (Pessoa/Contato), pode ser necessário mapear também aliases no integrador (`linkOrigem` e `link_origem`).

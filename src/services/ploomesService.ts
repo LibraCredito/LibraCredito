@@ -43,6 +43,8 @@ export interface PloomesPayload {
   referrer?: string | null;
   'Link de origem'?: string;
   'Link de origem \n'?: string;
+  linkOrigem?: string;
+  link_origem?: string;
 }
 
 // Interface para resposta do Ploomes
@@ -131,7 +133,9 @@ export class PloomesService {
         landing_page: data.landing_page || null,
         referrer: data.referrer || null,
         'Link de origem': originLink,
-        'Link de origem \n': originLink
+        'Link de origem \n': originLink,
+        linkOrigem: originLink,
+        link_origem: originLink
       };
       
 

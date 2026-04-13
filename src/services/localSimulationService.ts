@@ -597,7 +597,9 @@ export class LocalSimulationService {
         landing_page: input.landing_page || null,
         referrer: input.referrer || null,
         'Link de origem': originLink,
-        'Link de origem \n': originLink
+        'Link de origem \n': originLink,
+        linkOrigem: originLink,
+        link_origem: originLink
       };
 
 

@@ -563,6 +563,16 @@ export class LocalSimulationService {
       }
 
       // Preparar payload para API Ploomes com validação de tipos
+      const originLink = buildPloomesOriginLink({
+        utm_source: input.utm_source || null,
+        utm_medium: input.utm_medium || null,
+        utm_campaign: input.utm_campaign || null,
+        utm_term: input.utm_term || null,
+        utm_content: input.utm_content || null,
+        landing_page: input.landing_page || null,
+        referrer: input.referrer || null
+      });
+
       const ploomesPayload = {
         cidade: input.cidade?.trim() || simulationData?.cidade || 'Não informado',
         valorDesejadoEmprestimo: Number(input.valorDesejadoEmprestimo || simulationData?.valor_emprestimo || 0),
@@ -582,15 +592,8 @@ export class LocalSimulationService {
         utm_content: input.utm_content || null,
         landing_page: input.landing_page || null,
         referrer: input.referrer || null,
-        'Link de origem \n': buildPloomesOriginLink({
-          utm_source: input.utm_source || null,
-          utm_medium: input.utm_medium || null,
-          utm_campaign: input.utm_campaign || null,
-          utm_term: input.utm_term || null,
-          utm_content: input.utm_content || null,
-          landing_page: input.landing_page || null,
-          referrer: input.referrer || null
-        })
+        'Link de origem': originLink,
+        'Link de origem \n': originLink
       };
 
       // Validar campos obrigatórios

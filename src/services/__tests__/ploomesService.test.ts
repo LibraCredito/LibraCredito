@@ -3,6 +3,9 @@ import PloomesService from '../ploomesService';
 
 
 const getOriginLink = (body: Record<string, unknown>): string => {
+  if (typeof body['Link de origem'] === 'string') {
+    return String(body['Link de origem']);
+  }
   const key = Object.keys(body).find((candidate) => candidate.startsWith('Link de origem'));
   return String((key && body[key]) || '');
 };
@@ -56,12 +59,14 @@ describe('PloomesService', () => {
     });
 
     const originLink = getOriginLink(body);
+    expect(body['Link de origem']).toBeTypeOf('string');
     expect(originLink).toContain('Origem: google / cpc');
     expect(originLink).toContain('Campanha: camp');
     expect(originLink).toContain('Grupo: term');
     expect(originLink).toContain('Anúncio: content');
     expect(originLink).toContain('landing_page: https://example.com');
     expect(originLink).toContain('referrer: https://referrer.com');
+    expect(originLink.length).toBeLessThanOrEqual(250);
   });
 
   it('uses referrer as origin when there is no UTM and falls back to desconhecido', async () => {
@@ -110,5 +115,6 @@ describe('PloomesService', () => {
     const originLinkNoReferrer = getOriginLink(bodyNoReferrer);
     expect(originLinkNoReferrer).toContain('Origem: desconhecido');
     expect(originLinkNoReferrer).toContain('referrer: desconhecido');
+    expect(originLinkNoReferrer.length).toBeLessThanOrEqual(250);
   });
 });

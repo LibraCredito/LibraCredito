@@ -8,6 +8,8 @@ export interface PloomesOriginFields {
   referrer?: string | null;
 }
 
+const MAX_PLOOMES_ORIGIN_LENGTH = 250;
+
 const normalize = (value?: string | null): string | null => {
   if (!value) return null;
   const trimmed = value.trim();
@@ -19,6 +21,11 @@ const normalize = (value?: string | null): string | null => {
   } catch {
     return normalized.replace(/\s+/g, ' ').trim();
   }
+};
+
+const truncateToLimit = (value: string, max = MAX_PLOOMES_ORIGIN_LENGTH): string => {
+  if (value.length <= max) return value;
+  return `${value.slice(0, Math.max(0, max - 3)).trimEnd()}...`;
 };
 
 export const buildPloomesOriginLink = (fields: PloomesOriginFields): string => {
@@ -40,15 +47,16 @@ export const buildPloomesOriginLink = (fields: PloomesOriginFields): string => {
     ? [source, medium].filter(Boolean).join(' / ') || 'desconhecido'
     : referrer;
 
-  return [
+  const compact = [
     `Origem: ${origin}`,
     `Campanha: ${campaign}`,
     `Grupo: ${term}`,
     `Anúncio: ${content}`,
-    '',
     `utm_term: ${term}`,
     `utm_content: ${content}`,
     `landing_page: ${landingPage}`,
     `referrer: ${referrer}`
-  ].join('\n');
+  ].join(' | ');
+
+  return truncateToLimit(compact);
 };

@@ -40,6 +40,7 @@ export interface PloomesPayload {
   utm_content?: string | null;
   landing_page?: string | null;
   referrer?: string | null;
+  'Link de origem'?: string;
   'Link de origem \n'?: string;
 }
 
@@ -95,6 +96,16 @@ export class PloomesService {
       console.log('🚀 Iniciando cadastro no Ploomes:', data);
       
       // Preparar payload com valores corretos
+      const originLink = buildPloomesOriginLink({
+        utm_source: data.utm_source,
+        utm_medium: data.utm_medium,
+        utm_campaign: data.utm_campaign,
+        utm_term: data.utm_term,
+        utm_content: data.utm_content,
+        landing_page: data.landing_page,
+        referrer: data.referrer
+      });
+
       const payload: PloomesPayload = {
         cidade: data.cidade,
         valorDesejadoEmprestimo: this.limparValorMonetario(data.valorEmprestimo),
@@ -114,15 +125,8 @@ export class PloomesService {
         utm_content: data.utm_content || null,
         landing_page: data.landing_page || null,
         referrer: data.referrer || null,
-        'Link de origem \n': buildPloomesOriginLink({
-          utm_source: data.utm_source,
-          utm_medium: data.utm_medium,
-          utm_campaign: data.utm_campaign,
-          utm_term: data.utm_term,
-          utm_content: data.utm_content,
-          landing_page: data.landing_page,
-          referrer: data.referrer
-        })
+        'Link de origem': originLink,
+        'Link de origem \n': originLink
       };
       
       console.log('📤 Payload formatado para Ploomes:', payload);

@@ -22,15 +22,23 @@ const normalize = (value?: string | null): string | null => {
 };
 
 export const buildPloomesOriginLink = (fields: PloomesOriginFields): string => {
-  const source = normalize(fields.utm_source) ?? '-';
-  const medium = normalize(fields.utm_medium) ?? '-';
-  const campaign = normalize(fields.utm_campaign) ?? '-';
-  const term = normalize(fields.utm_term) ?? '-';
-  const content = normalize(fields.utm_content) ?? '-';
-  const landingPage = normalize(fields.landing_page) ?? '-';
-  const referrer = normalize(fields.referrer) ?? '-';
+  const source = normalize(fields.utm_source);
+  const medium = normalize(fields.utm_medium);
+  const campaignRaw = normalize(fields.utm_campaign);
+  const termRaw = normalize(fields.utm_term);
+  const contentRaw = normalize(fields.utm_content);
+  const landingPage = normalize(fields.landing_page) ?? 'desconhecido';
+  const referrer = normalize(fields.referrer) ?? 'desconhecido';
 
-  const origin = [source, medium].filter(part => part !== '-').join(' / ') || '-';
+  const campaign = campaignRaw ?? 'desconhecido';
+  const term = termRaw ?? 'desconhecido';
+  const content = contentRaw ?? 'desconhecido';
+
+  const hasAnyUtm = Boolean(source || medium || campaignRaw || termRaw || contentRaw);
+
+  const origin = hasAnyUtm
+    ? [source, medium].filter(Boolean).join(' / ') || 'desconhecido'
+    : referrer;
 
   return [
     `Origem: ${origin}`,

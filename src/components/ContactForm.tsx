@@ -195,7 +195,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
 
       const journey = getJourneyData();
 
-      await LocalSimulationService.processContact({
+      const contactResult = await LocalSimulationService.processContact({
         simulationId: simulationResult.id,
         sessionId,
         visitorId,
@@ -226,6 +226,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
             : null
 
       });
+
+      if (contactResult.duplicateLead) {
+        alert(
+          '⚠️ Identificamos uma solicitação recente com este e-mail no CRM (janela de 7 dias).\n\n' +
+          'Sua solicitação foi recebida e nosso time seguirá com o atendimento da proposta já existente.'
+        );
+      }
 
       // Redirecionar diretamente para a página de confirmação com resumo
       const summary = {

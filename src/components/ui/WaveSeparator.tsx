@@ -60,8 +60,9 @@ const WaveSeparator: React.FC<WaveSeparatorProps> = ({
           inverted && 'transform scale-y-[-1]'
         )}
         style={{
-          left: 0,
-          right: 0,
+          left: '-1px',
+          right: '-1px',
+          width: 'calc(100% + 2px)',
           height: 'calc(100% + 2px)', // Aumenta altura em 2px
           shapeRendering: 'auto', // Melhor para anti-aliasing
           vectorEffect: 'non-scaling-stroke' // Previne problemas de escala

@@ -13,12 +13,6 @@ body {
   overflow-x: hidden;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  body {
-    scrollbar-gutter: stable;
-  }
-}
-
 html {
   overflow-x: hidden;
 }

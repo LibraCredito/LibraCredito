@@ -50,7 +50,6 @@ html {
 
 body {
   @apply bg-background text-foreground overflow-x-hidden;
-  scrollbar-gutter: stable;
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 

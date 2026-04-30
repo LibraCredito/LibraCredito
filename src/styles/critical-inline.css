@@ -15,7 +15,7 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   body {
-    scrollbar-gutter: stable both-edges;
+    scrollbar-gutter: stable;
   }
 }
 

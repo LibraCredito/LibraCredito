@@ -115,7 +115,7 @@ const ImageOptimizer: React.FC<ImageOptimizerProps> = ({
       decoding={resolvedDecoding}
       srcSet={srcSet}
       sizes={sizes}
-      fetchPriority={resolvedFetchPriority}
+      {...(resolvedFetchPriority ? { fetchpriority: resolvedFetchPriority } : {})}
     />
   );
 

@@ -1,5 +1,5 @@
 import Play from 'lucide-react/dist/esm/icons/play';
-import { type FC, type MouseEvent, useEffect } from 'react';
+import { type FC, type MouseEvent } from 'react';
 
 let youtubeApiPromise: Promise<void> | null = null;
 
@@ -61,61 +61,11 @@ const OptimizedYouTube: FC<OptimizedYouTubeProps> = ({
   const thumbnailImage = thumbnailSrc || '/images/media/video-cgi-libra.webp';
   const fetchPriorityAttr = fetchPriority ?? (priority ? 'high' : undefined);
 
-  useEffect(() => {
-    if (!priority || typeof window === 'undefined') {
-      return;
-    }
 
-    let cancelled = false;
-    const win = window as typeof window & {
-      requestIdleCallback?: (
-        callback: IdleRequestCallback,
-        options?: IdleRequestOptions,
-      ) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-
-    const load = () => {
-      if (!cancelled) {
-        void loadYouTubeApi();
-      }
-    };
-
-    if (win.requestIdleCallback) {
-      const handle = win.requestIdleCallback(load, { timeout: 2000 });
-      return () => {
-        cancelled = true;
-        win.cancelIdleCallback?.(handle);
-      };
-    }
-
-    const timeoutId = window.setTimeout(load, 1200);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [priority]);
-
-  const loadVideo = async (e: MouseEvent<HTMLButtonElement>) => {
-    const container = e.currentTarget.parentElement as HTMLElement | null;
-    if (!container || typeof window === 'undefined') return;
-
-    const fallbackUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const w = window as typeof window & {
-      YT?: { Player?: new (...args: any[]) => any };
-    };
-
-    try {
-      await loadYouTubeApi();
-    } catch (error) {
-      console.error('Erro ao carregar a API do YouTube', error);
-    }
-
-    if (!w.YT || !w.YT.Player) {
-      window.open(fallbackUrl, '_blank', 'noopener');
-      return;
-    }
-
+  const mountPlayer = (
+    container: HTMLElement,
+    Player: new (...args: any[]) => any,
+  ) => {
     container.innerHTML = '';
     const div = document.createElement('div');
     div.style.position = 'absolute';
@@ -124,7 +74,7 @@ const OptimizedYouTube: FC<OptimizedYouTubeProps> = ({
     div.style.height = '100%';
     container.appendChild(div);
 
-    const player = new w.YT.Player(div, {
+    const player = new Player(div, {
       width: '100%',
       height: '100%',
       videoId,
@@ -136,12 +86,41 @@ const OptimizedYouTube: FC<OptimizedYouTubeProps> = ({
     player.playVideo();
   };
 
+  const loadVideo = (e: MouseEvent<HTMLButtonElement>) => {
+    const container = e.currentTarget.parentElement as HTMLElement | null;
+    if (!container || typeof window === 'undefined') return;
+
+    const fallbackUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const w = window as typeof window & {
+      YT?: { Player?: new (...args: any[]) => any };
+    };
+
+    if (w.YT?.Player) {
+      mountPlayer(container, w.YT.Player);
+      return;
+    }
+
+    void loadYouTubeApi()
+      .then(() => {
+        if (w.YT?.Player) {
+          mountPlayer(container, w.YT.Player);
+          return;
+        }
+
+        window.open(fallbackUrl, '_blank', 'noopener');
+      })
+      .catch((error) => {
+        console.error('Erro ao carregar a API do YouTube', error);
+        window.open(fallbackUrl, '_blank', 'noopener');
+      });
+  };
+
   return (
     <div className={`hero-video relative w-full h-full overflow-hidden bg-gray-200 ${className}`}>
       <button
         className="w-full h-full cursor-pointer relative flex items-center justify-center group"
         onClick={(event) => {
-          void loadVideo(event);
+          loadVideo(event);
         }}
         aria-label={`Reproduzir vídeo: ${title}`}
         type="button"

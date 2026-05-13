@@ -20,8 +20,8 @@
 
 import {
   PLOOMES_ORIGIN_FIELD,
+  applyPloomesOriginFields,
   buildPloomesOriginLink,
-  buildPloomesOriginOtherProperty,
   type PloomesOriginOtherProperty
 } from '@/utils/ploomesOriginLink';
 
@@ -49,7 +49,10 @@ export interface PloomesPayload {
   'Link de origem'?: string;
   'Link de origem \n'?: string;
   linkOrigem?: string;
+  linkDeOrigem?: string;
   link_origem?: string;
+  link_de_origem?: string;
+  originLink?: string;
   OtherProperties?: PloomesOriginOtherProperty[];
 }
 
@@ -149,12 +152,7 @@ export class PloomesService {
       
 
       if (this.enableCustomFields) {
-        payload['Link de origem'] = originLink;
-        payload['Link de origem \n'] = originLink;
-        payload.linkOrigem = originLink;
-        payload.link_origem = originLink;
-        payload[this.originFieldKey] = originLink;
-        payload.OtherProperties = [buildPloomesOriginOtherProperty(originLink, this.originFieldKey)];
+        applyPloomesOriginFields(payload, originLink, this.originFieldKey);
 
         if (this.stageId) {
           payload.StageId = this.stageId;

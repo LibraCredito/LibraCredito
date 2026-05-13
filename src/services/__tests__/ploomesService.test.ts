@@ -66,6 +66,9 @@ describe('PloomesService', () => {
     expect(body['Link de origem \n']).toBeUndefined();
     expect(body.linkOrigem).toBeUndefined();
     expect(body.link_origem).toBeUndefined();
+    expect(body.linkDeOrigem).toBeUndefined();
+    expect(body.link_de_origem).toBeUndefined();
+    expect(body.originLink).toBeUndefined();
     expect(body.OtherProperties).toBeUndefined();
   });
 
@@ -77,6 +80,9 @@ describe('PloomesService', () => {
     const body = getRequestBody(fetchMock);
 
     expect(body[PLOOMES_ORIGIN_FIELD.key]).toContain('Origem: google / cpc');
+    expect(body.linkDeOrigem).toBe(body[PLOOMES_ORIGIN_FIELD.key]);
+    expect(body.link_de_origem).toBe(body[PLOOMES_ORIGIN_FIELD.key]);
+    expect(body.originLink).toBe(body[PLOOMES_ORIGIN_FIELD.key]);
     expect(body.OtherProperties).toEqual([
       {
         FieldKey: PLOOMES_ORIGIN_FIELD.key,

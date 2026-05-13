@@ -19,6 +19,10 @@ export interface PloomesOriginOtherProperty {
   StringValue: string;
 }
 
+export type PloomesOriginPayloadTarget = Record<string, unknown> & {
+  OtherProperties?: PloomesOriginOtherProperty[];
+};
+
 const MAX_PLOOMES_ORIGIN_LENGTH = 250;
 
 const normalize = (value?: string | null): string | null => {
@@ -79,3 +83,24 @@ export const buildPloomesOriginOtherProperty = (
   FieldKey: normalize(fieldKey) ?? PLOOMES_ORIGIN_FIELD.key,
   StringValue: originLink
 });
+
+export const applyPloomesOriginFields = (
+  payload: PloomesOriginPayloadTarget,
+  originLink: string,
+  fieldKey = PLOOMES_ORIGIN_FIELD.key
+): PloomesOriginPayloadTarget => {
+  const normalizedFieldKey = normalize(fieldKey) ?? PLOOMES_ORIGIN_FIELD.key;
+  const originProperty = buildPloomesOriginOtherProperty(originLink, normalizedFieldKey);
+
+  payload[PLOOMES_ORIGIN_FIELD.name] = originLink;
+  payload[`${PLOOMES_ORIGIN_FIELD.name} \n`] = originLink;
+  payload.linkOrigem = originLink;
+  payload.linkDeOrigem = originLink;
+  payload.link_origem = originLink;
+  payload.link_de_origem = originLink;
+  payload.originLink = originLink;
+  payload[normalizedFieldKey] = originLink;
+  payload.OtherProperties = [originProperty];
+
+  return payload;
+};

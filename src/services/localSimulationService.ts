@@ -19,8 +19,8 @@ import { WebhookService } from '@/services/webhookService';
 import { validateEmail, validatePhone } from '@/utils/validations';
 import {
   PLOOMES_ORIGIN_FIELD,
-  buildPloomesOriginLink,
-  buildPloomesOriginOtherProperty
+  applyPloomesOriginFields,
+  buildPloomesOriginLink
 } from '@/utils/ploomesOriginLink';
 import {
   SIMULATION_PLACEHOLDER_EMAIL,
@@ -610,12 +610,7 @@ export class LocalSimulationService {
         const originFieldKey = getPloomesOriginFieldKey();
         const ploomesCustomPayload = ploomesPayload as Record<string, unknown>;
 
-        ploomesCustomPayload['Link de origem'] = originLink;
-        ploomesCustomPayload['Link de origem \n'] = originLink;
-        ploomesCustomPayload.linkOrigem = originLink;
-        ploomesCustomPayload.link_origem = originLink;
-        ploomesCustomPayload[originFieldKey] = originLink;
-        ploomesCustomPayload.OtherProperties = [buildPloomesOriginOtherProperty(originLink, originFieldKey)];
+        applyPloomesOriginFields(ploomesCustomPayload, originLink, originFieldKey);
 
         const stageId = getPloomesStageId();
         if (stageId) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   PLOOMES_ORIGIN_FIELD,
+  applyPloomesOriginFields,
   buildPloomesOriginLink,
   buildPloomesOriginOtherProperty
 } from '../ploomesOriginLink';
@@ -28,5 +29,16 @@ describe('ploomesOriginLink', () => {
       FieldKey: PLOOMES_ORIGIN_FIELD.key,
       StringValue: 'Origem: google / cpc'
     });
+  });
+
+  it('applies compatibility aliases used by the Ploomes proxy payload', () => {
+    const payload = applyPloomesOriginFields({}, 'Origem: google / cpc');
+
+    expect(payload['Link de origem']).toBe('Origem: google / cpc');
+    expect(payload.linkOrigem).toBe('Origem: google / cpc');
+    expect(payload.linkDeOrigem).toBe('Origem: google / cpc');
+    expect(payload.link_origem).toBe('Origem: google / cpc');
+    expect(payload.link_de_origem).toBe('Origem: google / cpc');
+    expect(payload.originLink).toBe('Origem: google / cpc');
   });
 });

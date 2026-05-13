@@ -16,14 +16,21 @@ interface MobileContextType {
 
 const MobileContext = createContext<MobileContextType | undefined>(undefined);
 
+const getInitialIsMobile = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches;
+};
+
 interface MobileProviderProps {
   children: ReactNode;
 }
 
 export const MobileProvider: React.FC<MobileProviderProps> = ({ children }) => {
-  // Valor inicial determinístico para evitar mismatch
-  const [isMobile, setIsMobile] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use the real client viewport on first render to avoid desktop-to-mobile layout shifts.
+  const [isMobile, setIsMobile] = useState(getInitialIsMobile);
 
   useEffect(() => {
     // Verificar se estamos no browser
@@ -35,9 +42,8 @@ export const MobileProvider: React.FC<MobileProviderProps> = ({ children }) => {
       setIsMobile(e.matches);
     };
 
-    // Definir valor inicial correto após montar
+    // Keep the value synchronized after mount without forcing a second layout pass.
     setIsMobile(mql.matches);
-    setIsLoading(false);
     
     // Adicionar listener
     mql.addEventListener('change', onChange);
@@ -50,7 +56,7 @@ export const MobileProvider: React.FC<MobileProviderProps> = ({ children }) => {
 
   const value: MobileContextType = {
     isMobile,
-    isLoading
+    isLoading: false
   };
 
   return (
@@ -77,11 +83,6 @@ export const useMobileOptimized = (): MobileContextType => {
 
 // Hook de compatibilidade para migração gradual
 export const useIsMobile = (): boolean => {
-  try {
-    const { isMobile } = useMobileOptimized();
-    return isMobile;
-  } catch (error) {
-    console.warn('useIsMobile error, defaulting to false:', error);
-    return false;
-  }
+  const { isMobile } = useMobileOptimized();
+  return isMobile;
 };

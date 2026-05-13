@@ -42,20 +42,28 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const { isMobile } = useDevice();
 
-  // Carrega o popup assim que o componente é montado
+  // Defer the informational popup so it cannot affect the initial CWV window.
   useEffect(() => {
     const currentPath = location.pathname;
     const allowedPaths = ['/', '/simulacao'];
 
-    if (allowedPaths.includes(currentPath)) {
-      const storageKey = `popup_seen_${currentPath.replace('/', 'home')}`;
-      const hasSeenPopup = localStorage.getItem(storageKey);
-
-      if (!hasSeenPopup) {
-        setShouldShowDialog(true);
-        setIsInfoPopupOpen(true);
-      }
+    if (!allowedPaths.includes(currentPath)) {
+      return undefined;
     }
+
+    const storageKey = `popup_seen_${currentPath.replace('/', 'home')}`;
+    const hasSeenPopup = localStorage.getItem(storageKey);
+
+    if (hasSeenPopup) {
+      return undefined;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setShouldShowDialog(true);
+      setIsInfoPopupOpen(true);
+    }, 15000);
+
+    return () => window.clearTimeout(timerId);
   }, [location.pathname]);
 
   const handleClosePopup = (e: React.MouseEvent<HTMLButtonElement>) => {

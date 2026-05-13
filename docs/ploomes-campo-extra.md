@@ -103,5 +103,5 @@ Com isso, além de enviar \`Link de origem\`, o payload passa a enviar também o
 
 - Observação: se o campo "Link de origem" estiver em `EntityId = 2` (Pessoa/Contato), pode ser necessário mapear também aliases no integrador (`linkOrigem` e `link_origem`).
 
-- Para proteger a integração principal com o Ploomes, os campos customizados de origem ficam desativados por padrão.
-  - Ative apenas quando validar o mapeamento: `VITE_PLOOMES_ENABLE_CUSTOM_FIELDS=true`
+- O envio de Campanha & Origem para o campo customizado do Ploomes fica ativo por padrão.
+  - Caso seja necessário desativar rapidamente, configure o kill switch: `VITE_PLOOMES_ENABLE_CUSTOM_FIELDS=false`

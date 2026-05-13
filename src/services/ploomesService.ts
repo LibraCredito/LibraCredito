@@ -18,7 +18,12 @@
  * - Bloqueio de duplicidade: 7 dias por email
  */
 
-import { buildPloomesOriginLink } from '@/utils/ploomesOriginLink';
+import {
+  PLOOMES_ORIGIN_FIELD,
+  applyPloomesOriginFields,
+  buildPloomesOriginLink,
+  type PloomesOriginOtherProperty
+} from '@/utils/ploomesOriginLink';
 
 // Interface para payload do Ploomes
 export interface PloomesPayload {
@@ -44,7 +49,11 @@ export interface PloomesPayload {
   'Link de origem'?: string;
   'Link de origem \n'?: string;
   linkOrigem?: string;
+  linkDeOrigem?: string;
   link_origem?: string;
+  link_de_origem?: string;
+  originLink?: string;
+  OtherProperties?: PloomesOriginOtherProperty[];
 }
 
 // Interface para resposta do Ploomes
@@ -72,12 +81,17 @@ const IMOVEL_MAP: Record<string, 'Imóvel próprio' | 'Imóvel de terceiro'> = {
 
 export class PloomesService {
   private static readonly API_URL = 'https://api-ploomes.vercel.app/cadastro/online/env';
-  private static readonly ORIGIN_FIELD_KEY =
-    (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
-  private static readonly STAGE_ID =
-    Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
-  private static readonly ENABLE_CUSTOM_FIELDS =
-    String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS || '').toLowerCase() === 'true';
+  private static get originFieldKey(): string {
+    return (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || PLOOMES_ORIGIN_FIELD.key;
+  }
+
+  private static get stageId(): number | null {
+    return Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
+  }
+
+  private static get enableCustomFields(): boolean {
+    return String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS ?? 'true').toLowerCase() !== 'false';
+  }
   
   /**
    * Cadastra uma proposta no Ploomes
@@ -137,18 +151,11 @@ export class PloomesService {
       };
       
 
-      if (this.ENABLE_CUSTOM_FIELDS) {
-        payload['Link de origem'] = originLink;
-        payload['Link de origem \n'] = originLink;
-        payload.linkOrigem = originLink;
-        payload.link_origem = originLink;
+      if (this.enableCustomFields) {
+        applyPloomesOriginFields(payload, originLink, this.originFieldKey);
 
-        if (this.ORIGIN_FIELD_KEY) {
-          payload[this.ORIGIN_FIELD_KEY] = originLink;
-        }
-
-        if (this.STAGE_ID) {
-          payload.StageId = this.STAGE_ID;
+        if (this.stageId) {
+          payload.StageId = this.stageId;
         }
       }
 

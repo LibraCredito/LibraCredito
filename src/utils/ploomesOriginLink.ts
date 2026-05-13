@@ -1,3 +1,9 @@
+export const PLOOMES_ORIGIN_FIELD = {
+  id: 80002454,
+  key: 'deal_4E9D160A-197F-469B-B1C7-228C199694F3',
+  name: 'Link de origem'
+} as const;
+
 export interface PloomesOriginFields {
   utm_source?: string | null;
   utm_medium?: string | null;
@@ -7,6 +13,15 @@ export interface PloomesOriginFields {
   landing_page?: string | null;
   referrer?: string | null;
 }
+
+export interface PloomesOriginOtherProperty {
+  FieldKey: string;
+  StringValue: string;
+}
+
+export type PloomesOriginPayloadTarget = Record<string, unknown> & {
+  OtherProperties?: PloomesOriginOtherProperty[];
+};
 
 const MAX_PLOOMES_ORIGIN_LENGTH = 250;
 
@@ -59,4 +74,33 @@ export const buildPloomesOriginLink = (fields: PloomesOriginFields): string => {
   ].join(' | ');
 
   return truncateToLimit(compact);
+};
+
+export const buildPloomesOriginOtherProperty = (
+  originLink: string,
+  fieldKey = PLOOMES_ORIGIN_FIELD.key
+): PloomesOriginOtherProperty => ({
+  FieldKey: normalize(fieldKey) ?? PLOOMES_ORIGIN_FIELD.key,
+  StringValue: originLink
+});
+
+export const applyPloomesOriginFields = (
+  payload: PloomesOriginPayloadTarget,
+  originLink: string,
+  fieldKey = PLOOMES_ORIGIN_FIELD.key
+): PloomesOriginPayloadTarget => {
+  const normalizedFieldKey = normalize(fieldKey) ?? PLOOMES_ORIGIN_FIELD.key;
+  const originProperty = buildPloomesOriginOtherProperty(originLink, normalizedFieldKey);
+
+  payload[PLOOMES_ORIGIN_FIELD.name] = originLink;
+  payload[`${PLOOMES_ORIGIN_FIELD.name} \n`] = originLink;
+  payload.linkOrigem = originLink;
+  payload.linkDeOrigem = originLink;
+  payload.link_origem = originLink;
+  payload.link_de_origem = originLink;
+  payload.originLink = originLink;
+  payload[normalizedFieldKey] = originLink;
+  payload.OtherProperties = [originProperty];
+
+  return payload;
 };

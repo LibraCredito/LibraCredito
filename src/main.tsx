@@ -3,8 +3,21 @@ import { hydrateRoot, createRoot } from 'react-dom/client';
 import App from './App.tsx'
 import './index.css';
 import './styles/overflow-fix.css';
-import { requestIdleCallback as requestIdleCb } from './utils/performance';
-import { LocalSimulationService } from '@/services/localSimulationService';
+
+
+const requestIdleCb = (callback: IdleRequestCallback) => {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    return window.requestIdleCallback(callback);
+  }
+
+  return window.setTimeout(() => {
+    const start = Date.now();
+    callback({
+      didTimeout: false,
+      timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
+    });
+  }, 1);
+};
 
 const disableLegacyServiceWorkers = async () => {
   if (typeof window === 'undefined') {
@@ -56,4 +69,13 @@ const renderApp = () => {
 };
 
 disableLegacyServiceWorkers().finally(renderApp);
-LocalSimulationService.resendPendingContacts();
+
+requestIdleCb(() => {
+  void import('@/services/localSimulationService')
+    .then(({ LocalSimulationService }) => {
+      void LocalSimulationService.resendPendingContacts();
+    })
+    .catch((error) => {
+      console.warn('Falha ao reenviar contatos pendentes:', error);
+    });
+});

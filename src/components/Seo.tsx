@@ -22,6 +22,7 @@ interface SeoProps {
   twitter?: Record<string, string | undefined>;
   jsonLd?: Record<string, any>;
   schemaId?: string;
+  robots?: string;
 }
 
 const Seo: React.FC<SeoProps> = ({
@@ -32,6 +33,7 @@ const Seo: React.FC<SeoProps> = ({
   twitter,
   jsonLd,
   schemaId,
+  robots,
 }) => {
   const openGraphEntries = Object.entries(openGraph ?? {}).filter(([, value]) => Boolean(value));
   const twitterEntries = Object.entries(twitter ?? {}).filter(([, value]) => Boolean(value));
@@ -42,6 +44,7 @@ const Seo: React.FC<SeoProps> = ({
     <Helmet>
       {title && <title>{title}</title>}
       {description && <meta name="description" content={description} />}
+      {robots && <meta name="robots" content={robots} />}
       {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 
       {openGraphEntries.map(([key, value]) => (

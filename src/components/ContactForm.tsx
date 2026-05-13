@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Link, useNavigate } from 'react-router-dom';
 import { LocalSimulationService } from '@/services/localSimulationService';
 import { useUserJourney } from '@/hooks/useUserJourney';
+import { mergeTrafficOrigin, resolveTrafficOrigin } from '@/utils/trafficOrigin';
 import Home from 'lucide-react/dist/esm/icons/home';
 import Building from 'lucide-react/dist/esm/icons/building';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
@@ -194,6 +195,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
       });
 
       const journey = getJourneyData();
+      const trafficOrigin = mergeTrafficOrigin(
+        journey,
+        resolveTrafficOrigin(
+          typeof window !== 'undefined' ? window.location.href : null,
+          typeof document !== 'undefined' ? document.referrer || null : null
+        )
+      );
 
       await LocalSimulationService.processContact({
         simulationId: simulationResult.id,
@@ -213,13 +221,13 @@ const ContactForm: React.FC<ContactFormProps> = ({
         tipoAmortizacao: simulationResult.amortizacao,
         quantidadeParcelas: simulationResult.parcelas,
         aceitaPolitica: aceitePrivacidade,
-        utm_source: journey?.utm_source ?? null,
-        utm_medium: journey?.utm_medium ?? null,
-        utm_campaign: journey?.utm_campaign ?? null,
-        utm_term: journey?.utm_term ?? null,
-        utm_content: journey?.utm_content ?? null,
-        landing_page: journey?.landing_page ?? null,
-        referrer: journey?.referrer ?? null,
+        utm_source: trafficOrigin.utm_source,
+        utm_medium: trafficOrigin.utm_medium,
+        utm_campaign: trafficOrigin.utm_campaign,
+        utm_term: trafficOrigin.utm_term,
+        utm_content: trafficOrigin.utm_content,
+        landing_page: trafficOrigin.landing_page,
+        referrer: trafficOrigin.referrer,
         time_on_site:
           typeof journey?.time_on_site === 'number'
             ? Math.max(0, Math.floor(journey.time_on_site))

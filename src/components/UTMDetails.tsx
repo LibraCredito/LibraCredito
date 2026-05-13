@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import type { SessionGroupWithJourney } from '@/services/localSimulationService';
 import { cn } from '@/lib/utils';
+import { mergeTrafficOrigin, resolveTrafficOrigin } from '@/utils/trafficOrigin';
 
 interface UTMDetailsProps {
   visitor: SessionGroupWithJourney;
@@ -107,22 +108,33 @@ const UTMDetails: React.FC<UTMDetailsProps> = ({ visitor }) => {
       return null;
     };
 
-    const utmSource =
-      visitor.utm_source ?? (pickSimulationValue('utm_source') as string | null) ?? getParam('utm_source', 'source');
-    const utmMedium =
-      visitor.utm_medium ?? (pickSimulationValue('utm_medium') as string | null) ?? getParam('utm_medium', 'medium');
-    const utmCampaign =
-      visitor.utm_campaign ??
-      (pickSimulationValue('utm_campaign') as string | null) ??
-      getParam('utm_campaign', 'campaign');
-    const utmTerm =
-      visitor.utm_term ??
-      (pickSimulationValue('utm_term') as string | null) ??
-      getParam('utm_term', 'keyword', 'term');
-    const utmContent =
-      visitor.utm_content ??
-      (pickSimulationValue('utm_content') as string | null) ??
-      getParam('utm_content', 'content');
+    const trafficOrigin = mergeTrafficOrigin(
+      {
+        utm_source: visitor.utm_source ?? (pickSimulationValue('utm_source') as string | null) ?? getParam('utm_source', 'source'),
+        utm_medium: visitor.utm_medium ?? (pickSimulationValue('utm_medium') as string | null) ?? getParam('utm_medium', 'medium'),
+        utm_campaign:
+          visitor.utm_campaign ??
+          (pickSimulationValue('utm_campaign') as string | null) ??
+          getParam('utm_campaign', 'campaign'),
+        utm_term:
+          visitor.utm_term ??
+          (pickSimulationValue('utm_term') as string | null) ??
+          getParam('utm_term', 'keyword', 'term'),
+        utm_content:
+          visitor.utm_content ??
+          (pickSimulationValue('utm_content') as string | null) ??
+          getParam('utm_content', 'content'),
+        landing_page: landingPage ?? null,
+        referrer: referrer ?? null
+      },
+      resolveTrafficOrigin(landingPage, referrer)
+    );
+
+    const utmSource = trafficOrigin.utm_source;
+    const utmMedium = trafficOrigin.utm_medium;
+    const utmCampaign = trafficOrigin.utm_campaign;
+    const utmTerm = trafficOrigin.utm_term;
+    const utmContent = trafficOrigin.utm_content;
 
     const adGroupRaw =
       getParam('utm_adgroup', 'adgroup', 'utm_adset', 'adset', 'ad_group', 'utm_adgroup_id') ?? utmTerm;

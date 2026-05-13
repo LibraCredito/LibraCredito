@@ -1,10 +1,19 @@
 import { useEffect, useRef } from 'react';
 
+const runAfterInitialPaint = (callback: () => void) => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const timerId = window.setTimeout(callback, 5000);
+  return () => window.clearTimeout(timerId);
+};
+
 export default function TypewriterText({ strings }: { strings: string[] }) {
   const el = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    let typed: any;
+    let typed: { destroy?: () => void } | undefined;
     let isMounted = true;
 
     const loadTyped = async () => {
@@ -20,11 +29,14 @@ export default function TypewriterText({ strings }: { strings: string[] }) {
       });
     };
 
-    loadTyped();
+    const cancelDeferredLoad = runAfterInitialPaint(() => {
+      void loadTyped();
+    });
 
     return () => {
       isMounted = false;
-      typed?.destroy();
+      cancelDeferredLoad?.();
+      typed?.destroy?.();
     };
   }, [strings]);
 

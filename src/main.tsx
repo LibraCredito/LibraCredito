@@ -68,7 +68,11 @@ const renderApp = () => {
   }
 };
 
-disableLegacyServiceWorkers().finally(renderApp);
+renderApp();
+
+requestIdleCb(() => {
+  void disableLegacyServiceWorkers();
+});
 
 requestIdleCb(() => {
   void import('@/services/localSimulationService')

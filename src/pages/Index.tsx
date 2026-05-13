@@ -1,4 +1,4 @@
-import React, { useEffect, lazy, Suspense, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/useMobileContext';
@@ -9,14 +9,20 @@ import WaveSeparator from '@/components/ui/WaveSeparator';
 import Header from '@/components/Header';
 import ImageOptimizer from '@/components/ImageOptimizer';
 
-// Lazy loading dos componentes pesados - com threshold otimizado
-const FAQ = lazy(() => import('@/components/FAQ'));
-const BlogSection = lazy(() => import('@/components/BlogSection'));
-const Footer = lazy(() => import('@/components/Footer'));
 
 interface LazySectionProps {
   load: () => Promise<{ default: React.ComponentType<unknown> }>;
 }
+
+const scheduleIdleLoad = (callback: () => void) => {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    const idleId = window.requestIdleCallback(callback, { timeout: 3000 });
+    return () => window.cancelIdleCallback(idleId);
+  }
+
+  const timerId = window.setTimeout(callback, 1800);
+  return () => window.clearTimeout(timerId);
+};
 
 const LazySection: React.FC<LazySectionProps> = ({ load }) => {
   const [Component, setComponent] = useState<React.ComponentType<unknown> | null>(
@@ -24,30 +30,52 @@ const LazySection: React.FC<LazySectionProps> = ({ load }) => {
   );
   const ref = useRef<HTMLDivElement | null>(null);
   const loadRef = useRef(load);
+  const loadedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     loadRef.current = load;
   }, [load]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    const loadComponent = () => {
+      if (loadedRef.current) return;
+      loadedRef.current = true;
+      loadRef.current().then(({ default: Loaded }) => {
+        if (mountedRef.current) {
+          setComponent(() => Loaded);
+        }
+      });
+    };
+
+    const cancelIdleLoad = scheduleIdleLoad(loadComponent);
     const element = ref.current;
-    if (!element) return;
+
+    if (!element) {
+      return () => {
+        mountedRef.current = false;
+        cancelIdleLoad();
+      };
+    }
 
     const observer = new IntersectionObserver(
       (entries, obs) => {
         const entry = entries[0];
         if (entry.isIntersecting) {
-          loadRef.current().then(({ default: Loaded }) => {
-            setComponent(() => Loaded);
-          });
+          loadComponent();
           obs.disconnect();
         }
       },
-      { rootMargin: '200px 0px' },
+      { rootMargin: '600px 0px' },
     );
 
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      mountedRef.current = false;
+      cancelIdleLoad();
+      observer.disconnect();
+    };
   }, []);
 
   return <div ref={ref}>{Component ? <Component /> : null}</div>;
@@ -107,9 +135,7 @@ const Index: React.FC = () => {
       
       <WaveSeparator variant="hero" height="md" inverted />
       
-      <Suspense fallback={null}>
-        <FAQ />
-      </Suspense>
+      <LazySection load={() => import('@/components/FAQ')} />
       
       {/* Wave separator acima do botão Conheça a Libra */}
       <WaveSeparator variant="hero" height="md" />
@@ -171,14 +197,10 @@ const Index: React.FC = () => {
       
       <WaveSeparator variant="hero" height="md" inverted />
       
-      <Suspense fallback={null}>
-        <BlogSection />
-      </Suspense>
+      <LazySection load={() => import('@/components/BlogSection')} />
       </main>
 
-      <Suspense fallback={null}>
-        <Footer />
-      </Suspense>
+      <LazySection load={() => import('@/components/Footer')} />
     </div>
   );
 };

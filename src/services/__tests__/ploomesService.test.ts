@@ -43,7 +43,8 @@ const getRequestBody = (fetchMock: ReturnType<typeof mockSuccessfulFetch>) => {
 };
 
 describe('PloomesService', () => {
-  it('sends core payload and UTM params without custom fields by default', async () => {
+  it('sends core payload and UTM params without custom fields when kill switch is disabled', async () => {
+    vi.stubEnv('VITE_PLOOMES_ENABLE_CUSTOM_FIELDS', 'false');
     const fetchMock = mockSuccessfulFetch();
 
     await PloomesService.cadastrarProposta(validProposal);
@@ -68,8 +69,7 @@ describe('PloomesService', () => {
     expect(body.OtherProperties).toBeUndefined();
   });
 
-  it('sends the Ploomes deal custom field for Link de origem when custom fields are enabled', async () => {
-    vi.stubEnv('VITE_PLOOMES_ENABLE_CUSTOM_FIELDS', 'true');
+  it('sends the Ploomes deal custom field for Link de origem by default', async () => {
     const fetchMock = mockSuccessfulFetch();
 
     await PloomesService.cadastrarProposta(validProposal);

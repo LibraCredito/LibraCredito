@@ -171,7 +171,7 @@ const getPloomesOriginFieldKey = (): string =>
   (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || PLOOMES_ORIGIN_FIELD.key;
 const getPloomesStageId = (): number | null => Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
 const arePloomesCustomFieldsEnabled = (): boolean =>
-  String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS || '').toLowerCase() === 'true';
+  String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS ?? 'true').toLowerCase() !== 'false';
 
 export class LocalSimulationService {
   private static readonly WEBHOOK_QUEUE_KEY = 'libra_pending_webhooks';

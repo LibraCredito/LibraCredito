@@ -87,7 +87,7 @@ export class PloomesService {
   }
 
   private static get enableCustomFields(): boolean {
-    return String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS || '').toLowerCase() === 'true';
+    return String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS ?? 'true').toLowerCase() !== 'false';
   }
   
   /**

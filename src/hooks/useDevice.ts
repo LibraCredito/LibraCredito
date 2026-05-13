@@ -14,21 +14,70 @@ interface DeviceInfo {
   isTouchDevice: boolean;
 }
 
-export const useDevice = (): DeviceInfo => {
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
-    isMobile: false,
-    isTablet: false,
-    isDesktop: true,
-    isPremiumDevice: false,
-    screenWidth: 0,
-    screenHeight: 0,
-    deviceType: 'desktop',
-    isIOS: false,
-    isAndroid: false,
-    hasNotch: false,
-    isTouchDevice: false,
+const getInitialDeviceInfo = (): DeviceInfo => {
+  if (typeof window === 'undefined') {
+    return {
+      isMobile: false,
+      isTablet: false,
+      isDesktop: true,
+      isPremiumDevice: false,
+      screenWidth: 0,
+      screenHeight: 0,
+      deviceType: 'desktop',
+      isIOS: false,
+      isAndroid: false,
+      hasNotch: false,
+      isTouchDevice: false,
+    };
+  }
 
-  });
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+  const platform = uaData?.platform || navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(platform);
+  const isAndroid = /Android/.test(platform);
+  const maxTouchPoints = 'maxTouchPoints' in navigator ? navigator.maxTouchPoints : 0;
+  const isTouchDevice = 'ontouchstart' in window || maxTouchPoints > 0;
+
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
+  const isDesktop = width >= 1024;
+  const deviceType: DeviceInfo['deviceType'] = isMobile
+    ? width < 375
+      ? 'mobile-sm'
+      : width < 414
+        ? 'mobile-md'
+        : 'mobile-lg'
+    : isTablet
+      ? 'tablet'
+      : 'desktop';
+
+  return {
+    isMobile,
+    isTablet,
+    isDesktop,
+    isPremiumDevice:
+      (isIOS && (width >= 375 || height >= 812)) ||
+      (isAndroid && width >= 360 && window.devicePixelRatio >= 3),
+    screenWidth: width,
+    screenHeight: height,
+    deviceType,
+    isIOS,
+    isAndroid,
+    hasNotch:
+      isIOS &&
+      ((width === 375 && height === 812) ||
+        (width === 414 && height === 896) ||
+        (width === 390 && height === 844) ||
+        (width === 393 && height === 852) ||
+        (width === 430 && height === 932)),
+    isTouchDevice,
+  };
+};
+
+export const useDevice = (): DeviceInfo => {
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(getInitialDeviceInfo);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -36,7 +85,7 @@ export const useDevice = (): DeviceInfo => {
     const calculate = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const uaData = (navigator as any).userAgentData;
+      const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
       const platform = uaData?.platform || navigator.userAgent;
 
       const isIOS = /iPad|iPhone|iPod/.test(platform);

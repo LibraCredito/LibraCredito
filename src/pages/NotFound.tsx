@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { setMetaTag } from '@/utils/seoMeta';
 
 const NotFound = () => {
   const location = useLocation();
@@ -9,6 +10,8 @@ const NotFound = () => {
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
+
+    return setMetaTag('robots', 'noindex,follow');
   }, [location.pathname]);
 
   return (

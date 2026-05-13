@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import MobileLayout from '@/components/MobileLayout';
+import { setMetaTag } from '@/utils/seoMeta';
 import { useNavigate } from 'react-router-dom';
 import WaveSeparator from '@/components/ui/WaveSeparator';
 import { Button } from '@/components/ui/button';
@@ -19,11 +20,14 @@ const Confirmacao = () => {
       );
     }
 
+    const cleanupRobots = setMetaTag('robots', 'noindex,follow');
+
     const timer = window.setTimeout(() => {
       navigate('/quem-somos');
     }, 30000);
 
     return () => {
+      cleanupRobots();
       window.clearTimeout(timer);
     };
   }, [navigate]);

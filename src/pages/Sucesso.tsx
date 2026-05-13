@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '@/components/MobileLayout';
+import { setMetaTag } from '@/utils/seoMeta';
 
 const Sucesso = () => {
   const navigate = useNavigate();
@@ -16,11 +17,16 @@ const Sucesso = () => {
       );
     }
 
+    const cleanupRobots = setMetaTag('robots', 'noindex,follow');
+
     const timer = setTimeout(() => {
       navigate('/quem-somos');
     }, 30000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cleanupRobots();
+      clearTimeout(timer);
+    };
   }, [navigate]);
 
   return (

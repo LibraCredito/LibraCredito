@@ -15,3 +15,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://libracredito.com.br/sitemap.xml

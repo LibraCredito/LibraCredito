@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import MobileLayout from '@/components/MobileLayout';
+import { setMetaTag } from '@/utils/seoMeta';
 import AgentChat from '@/components/AgentChat';
 
 const Atendimento = () => {
@@ -12,6 +13,8 @@ const Atendimento = () => {
         'Tire suas dúvidas sobre crédito com garantia de imóvel no atendimento automatizado da Libra Crédito.'
       );
     }
+
+    return setMetaTag('robots', 'noindex,follow');
   }, []);
 
   return (

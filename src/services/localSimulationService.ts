@@ -17,7 +17,11 @@
 import { getAlertWebhookUrl, getSecondaryWebhookUrl } from '@/lib/env';
 import { WebhookService } from '@/services/webhookService';
 import { validateEmail, validatePhone } from '@/utils/validations';
-import { buildPloomesOriginLink } from '@/utils/ploomesOriginLink';
+import {
+  PLOOMES_ORIGIN_FIELD,
+  buildPloomesOriginLink,
+  buildPloomesOriginOtherProperty
+} from '@/utils/ploomesOriginLink';
 import {
   SIMULATION_PLACEHOLDER_EMAIL,
   SIMULATION_PLACEHOLDER_NAME,
@@ -163,10 +167,10 @@ const pickBetterJourney = (
 };
 
 // Classe principal do serviço local
-const PLOOMES_ORIGIN_FIELD_KEY =
-  (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || null;
-const PLOOMES_STAGE_ID = Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
-const PLOOMES_ENABLE_CUSTOM_FIELDS =
+const getPloomesOriginFieldKey = (): string =>
+  (import.meta.env.VITE_PLOOMES_ORIGIN_FIELD_KEY as string | undefined)?.trim() || PLOOMES_ORIGIN_FIELD.key;
+const getPloomesStageId = (): number | null => Number(import.meta.env.VITE_PLOOMES_STAGE_ID || 0) || null;
+const arePloomesCustomFieldsEnabled = (): boolean =>
   String(import.meta.env.VITE_PLOOMES_ENABLE_CUSTOM_FIELDS || '').toLowerCase() === 'true';
 
 export class LocalSimulationService {
@@ -569,15 +573,16 @@ export class LocalSimulationService {
       }
 
       // Preparar payload para API Ploomes com validação de tipos
-      const originLink = buildPloomesOriginLink({
-        utm_source: input.utm_source || null,
-        utm_medium: input.utm_medium || null,
-        utm_campaign: input.utm_campaign || null,
-        utm_term: input.utm_term || null,
-        utm_content: input.utm_content || null,
-        landing_page: input.landing_page || null,
-        referrer: input.referrer || null
-      });
+      const attribution = {
+        utm_source: input.utm_source || simulationData?.utm_source || null,
+        utm_medium: input.utm_medium || simulationData?.utm_medium || null,
+        utm_campaign: input.utm_campaign || simulationData?.utm_campaign || null,
+        utm_term: input.utm_term || simulationData?.utm_term || null,
+        utm_content: input.utm_content || simulationData?.utm_content || null,
+        landing_page: input.landing_page || simulationData?.landing_page || null,
+        referrer: input.referrer || simulationData?.referrer || null
+      };
+      const originLink = buildPloomesOriginLink(attribution);
 
       const ploomesPayload = {
         cidade: input.cidade?.trim() || simulationData?.cidade || 'Não informado',
@@ -591,28 +596,30 @@ export class LocalSimulationService {
         telefone: sanitizedPhone,
         imovelProprio: input.imovelProprio === 'proprio' ? 'Imóvel próprio' : 'Imóvel de terceiro',
         aceitaPolitica: Boolean(input.aceitaPolitica),
-        utm_source: input.utm_source || null,
-        utm_medium: input.utm_medium || null,
-        utm_campaign: input.utm_campaign || null,
-        utm_term: input.utm_term || null,
-        utm_content: input.utm_content || null,
-        landing_page: input.landing_page || null,
-        referrer: input.referrer || null
+        utm_source: attribution.utm_source,
+        utm_medium: attribution.utm_medium,
+        utm_campaign: attribution.utm_campaign,
+        utm_term: attribution.utm_term,
+        utm_content: attribution.utm_content,
+        landing_page: attribution.landing_page,
+        referrer: attribution.referrer
       };
 
 
-      if (PLOOMES_ENABLE_CUSTOM_FIELDS) {
-        (ploomesPayload as Record<string, unknown>)['Link de origem'] = originLink;
-        (ploomesPayload as Record<string, unknown>)['Link de origem \n'] = originLink;
-        (ploomesPayload as Record<string, unknown>).linkOrigem = originLink;
-        (ploomesPayload as Record<string, unknown>).link_origem = originLink;
+      if (arePloomesCustomFieldsEnabled()) {
+        const originFieldKey = getPloomesOriginFieldKey();
+        const ploomesCustomPayload = ploomesPayload as Record<string, unknown>;
 
-        if (PLOOMES_ORIGIN_FIELD_KEY) {
-          (ploomesPayload as Record<string, unknown>)[PLOOMES_ORIGIN_FIELD_KEY] = originLink;
-        }
+        ploomesCustomPayload['Link de origem'] = originLink;
+        ploomesCustomPayload['Link de origem \n'] = originLink;
+        ploomesCustomPayload.linkOrigem = originLink;
+        ploomesCustomPayload.link_origem = originLink;
+        ploomesCustomPayload[originFieldKey] = originLink;
+        ploomesCustomPayload.OtherProperties = [buildPloomesOriginOtherProperty(originLink, originFieldKey)];
 
-        if (PLOOMES_STAGE_ID) {
-          (ploomesPayload as Record<string, unknown>).StageId = PLOOMES_STAGE_ID;
+        const stageId = getPloomesStageId();
+        if (stageId) {
+          ploomesCustomPayload.StageId = stageId;
         }
       }
 

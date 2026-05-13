@@ -1,35 +1,47 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
-    <!-- Analytics Scripts (loaded after first paint or on user interaction) -->
+    <!-- Analytics Scripts (deferred until after load/interaction to protect LCP and INP) -->
     <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+
       function loadAnalytics() {
         if (window.analyticsLoaded) return;
         window.analyticsLoaded = true;
+
+        var gtagScript = document.createElement('script');
+        gtagScript.async = true;
+        gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-BETJ68WJBM';
+        document.head.appendChild(gtagScript);
+        gtag('js', new Date());
+        gtag('config', 'G-BETJ68WJBM');
+
         (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'? '&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-K4FVVD8');
         !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
         fbq('init', '763158836667720');
         fbq('track', 'PageView');
       }
-      if (window.requestIdleCallback) {
-        requestIdleCallback(loadAnalytics);
-      } else {
-        setTimeout(loadAnalytics, 0);
+
+      function scheduleAnalytics() {
+        var fallbackTimer = setTimeout(loadAnalytics, 15000);
+        function loadOnce() {
+          clearTimeout(fallbackTimer);
+          loadAnalytics();
+        }
+
+        ['scroll','pointerdown','touchstart','keydown'].forEach(function(evt){
+          window.addEventListener(evt, loadOnce, { once: true, passive: true });
+        });
       }
-      ['scroll','mousemove','touchstart','keydown'].forEach(function(evt){
-        window.addEventListener(evt, loadAnalytics, { once: true });
-      });
+
+      if (document.readyState === 'complete') {
+        scheduleAnalytics();
+      } else {
+        window.addEventListener('load', scheduleAnalytics, { once: true });
+      }
     </script>
     <!-- End Analytics Scripts -->
-    <!-- Google Analytics 4 (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BETJ68WJBM"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);} 
-      gtag('js', new Date());
-      gtag('config', 'G-BETJ68WJBM');
-    </script>
-    <!-- End Google Analytics 4 (gtag.js) -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Libra Crédito | Empréstimo com Garantia de Imóvel</title>

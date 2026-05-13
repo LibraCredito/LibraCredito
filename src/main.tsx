@@ -19,6 +19,14 @@ const requestIdleCb = (callback: IdleRequestCallback) => {
   }, 1);
 };
 
+const scheduleAfterVitalsWindow = (callback: () => void) => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  return window.setTimeout(callback, 15000);
+};
+
 const disableLegacyServiceWorkers = async () => {
   if (typeof window === 'undefined') {
     return;
@@ -68,9 +76,13 @@ const renderApp = () => {
   }
 };
 
-disableLegacyServiceWorkers().finally(renderApp);
+renderApp();
 
-requestIdleCb(() => {
+scheduleAfterVitalsWindow(() => {
+  void disableLegacyServiceWorkers();
+});
+
+scheduleAfterVitalsWindow(() => {
   void import('@/services/localSimulationService')
     .then(({ LocalSimulationService }) => {
       void LocalSimulationService.resendPendingContacts();

@@ -64,6 +64,7 @@ import { ApiMessageAnalysis } from '@/utils/apiMessageAnalyzer';
 import { analyzeLocalMessage } from '@/utils/localMessageAnalyzer';
 import { formatBRL, norm } from '@/utils/formatters';
 import { toast } from '@/components/ui/use-toast';
+import { mergeTrafficOrigin, resolveTrafficOrigin } from '@/utils/trafficOrigin';
 
 const SimulationForm: React.FC = () => {
   const { sessionId, visitorId, trackSimulation, getJourneyData } = useUserJourney();
@@ -161,6 +162,10 @@ const SimulationForm: React.FC = () => {
         typeof window !== 'undefined' ? window.location.href : undefined;
       const fallbackReferrer =
         typeof document !== 'undefined' ? document.referrer || null : undefined;
+      const trafficOrigin = mergeTrafficOrigin(
+        journey,
+        resolveTrafficOrigin(fallbackLandingPage, fallbackReferrer)
+      );
 
       // Preparar dados para o serviço (sem dados pessoais ainda)
       const simulationInput = {
@@ -177,13 +182,13 @@ const SimulationForm: React.FC = () => {
         userAgent: navigator.userAgent,
         ipAddress: undefined,
         isRuralProperty,
-        utmSource: journey ? journey.utm_source ?? null : undefined,
-        utmMedium: journey ? journey.utm_medium ?? null : undefined,
-        utmCampaign: journey ? journey.utm_campaign ?? null : undefined,
-        utmTerm: journey ? journey.utm_term ?? null : undefined,
-        utmContent: journey ? journey.utm_content ?? null : undefined,
-        landingPage: journey?.landing_page ?? fallbackLandingPage,
-        referrer: journey ? journey.referrer ?? null : fallbackReferrer,
+        utmSource: trafficOrigin.utm_source,
+        utmMedium: trafficOrigin.utm_medium,
+        utmCampaign: trafficOrigin.utm_campaign,
+        utmTerm: trafficOrigin.utm_term,
+        utmContent: trafficOrigin.utm_content,
+        landingPage: trafficOrigin.landing_page,
+        referrer: trafficOrigin.referrer,
         timeOnSite:
           typeof journey?.time_on_site === 'number'
             ? Math.max(0, Math.floor(journey.time_on_site))

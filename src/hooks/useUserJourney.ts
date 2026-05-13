@@ -26,6 +26,7 @@ import type {
   PageVisit,
   DeviceInfo
 } from '@/lib/supabase';
+import { mergeTrafficOrigin, resolveTrafficOrigin } from '@/utils/trafficOrigin';
 
 // Lazy loader para evitar carregar Supabase na primeira pintura
 type SupabaseApi = typeof import('@/lib/supabase').supabaseApi;
@@ -68,23 +69,6 @@ function getOrCreateVisitorId(): string {
     localStorage.setItem(VISITOR_STORAGE_KEY, id);
   }
   return id;
-}
-
-// Função para extrair UTMs da URL
-function extractUTMParams(url: string = window.location.href): Record<string, string> {
-  const urlObj = new URL(url);
-  const utms: Record<string, string> = {};
-  
-  const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
-  
-  utmParams.forEach(param => {
-    const value = urlObj.searchParams.get(param);
-    if (value) {
-      utms[param] = value;
-    }
-  });
-  
-  return utms;
 }
 
 // Função para detectar informações do device
@@ -194,7 +178,7 @@ export function useUserJourney(): UserJourneyHook {
     if (sessionId && isTracking) {
       trackPageVisit();
     }
-  }, [location.pathname, sessionId, isTracking]);
+  }, [location.pathname, location.search, sessionId, isTracking]);
 
   // Obter IP após primeira interação ou quando o navegador estiver ocioso
   useEffect(() => {
@@ -240,7 +224,10 @@ export function useUserJourney(): UserJourneyHook {
       } catch (getError: unknown) {
         // Apenas log em desenvolvimento, não desabilitar o tracking ainda
         if (process.env.NODE_ENV === 'development') {
-          console.warn('Could not fetch existing journey:', getError?.message);
+          console.warn(
+            'Could not fetch existing journey:',
+            getError instanceof Error ? getError.message : getError
+          );
         }
         existingJourney = null; // Continuar para tentar criar nova jornada
       }
@@ -248,19 +235,22 @@ export function useUserJourney(): UserJourneyHook {
       if (!existingJourney) {
         // Tentar criar nova jornada apenas se a consulta anterior funcionou
         try {
-          const utms = extractUTMParams();
+          const trafficOrigin = resolveTrafficOrigin(
+            window.location.href,
+            document.referrer || null
+          );
           const deviceInfo = getDeviceInfo();
 
           const newJourney: UserJourneyData = {
             session_id: sessionId,
             visitor_id: visitorId,
-            utm_source: utms.utm_source || null,
-            utm_medium: utms.utm_medium || null,
-            utm_campaign: utms.utm_campaign || null,
-            utm_term: utms.utm_term || null,
-            utm_content: utms.utm_content || null,
-            referrer: document.referrer || 'direct',
-            landing_page: window.location.href,
+            utm_source: trafficOrigin.utm_source,
+            utm_medium: trafficOrigin.utm_medium,
+            utm_campaign: trafficOrigin.utm_campaign,
+            utm_term: trafficOrigin.utm_term,
+            utm_content: trafficOrigin.utm_content,
+            referrer: trafficOrigin.referrer,
+            landing_page: trafficOrigin.landing_page,
             pages_visited: [],
             time_on_site: 0,
             device_info: deviceInfo,
@@ -284,6 +274,36 @@ export function useUserJourney(): UserJourneyHook {
           }
           setIsTracking(false);
           return;
+        }
+      } else {
+        const trafficOrigin = resolveTrafficOrigin(
+          window.location.href,
+          document.referrer || existingJourney.referrer || null
+        );
+        const mergedTrafficOrigin = mergeTrafficOrigin(existingJourney, trafficOrigin);
+        const missingTrafficOrigin = Object.entries(mergedTrafficOrigin).some(([key, value]) => {
+          const existingValue = existingJourney?.[key as keyof UserJourneyData];
+          return (existingValue === undefined || existingValue === null || existingValue === '') && value !== null;
+        });
+
+        if (missingTrafficOrigin) {
+          try {
+            const updatePayload: Partial<UserJourneyData> = {
+              utm_source: mergedTrafficOrigin.utm_source,
+              utm_medium: mergedTrafficOrigin.utm_medium,
+              utm_campaign: mergedTrafficOrigin.utm_campaign,
+              utm_term: mergedTrafficOrigin.utm_term,
+              utm_content: mergedTrafficOrigin.utm_content,
+              landing_page: mergedTrafficOrigin.landing_page,
+              referrer: mergedTrafficOrigin.referrer
+            };
+            await supabaseApi.updateUserJourney(sessionId, updatePayload);
+            existingJourney = { ...existingJourney, ...updatePayload };
+          } catch (updateError) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Could not enrich existing journey origin:', updateError);
+            }
+          }
         }
       }
       

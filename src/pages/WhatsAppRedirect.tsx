@@ -3,7 +3,7 @@ import MobileLayout from '@/components/MobileLayout';
 import { setMetaTag } from '@/utils/seoMeta';
 
 const WHATSAPP_REDIRECT_DELAY_MS = 1000;
-const WHATSAPP_LOCAL_PHONE_NUMBER = '16997207767';
+const WHATSAPP_LOCAL_PHONE_NUMBER = '16996064979';
 const WHATSAPP_PHONE_NUMBER = `55${WHATSAPP_LOCAL_PHONE_NUMBER}`;
 const WHATSAPP_MESSAGE = 'Olá Libra Crédito, quero iniciar meu atendimento!';
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;

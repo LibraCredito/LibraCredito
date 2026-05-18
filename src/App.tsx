@@ -122,7 +122,7 @@ const App = () => {
                 <Route path="/confirmacao" element={<Confirmacao />} />
                 <Route path="/confirmação" element={<Confirmacao />} />
                 <Route path="/atendimento" element={<Atendimento />} />
-                <Route path="/vaunossowhatsapp" element={<WhatsAppRedirect />} />
+                <Route path="/WPP-LIBRA" element={<WhatsAppRedirect />} />
                 <Route path="/sucesso" element={<Sucesso />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

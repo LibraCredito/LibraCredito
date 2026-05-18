@@ -108,7 +108,7 @@ const AppServer: React.FC<AppServerProps> = ({ url, initialData = {}, helmetCont
                 <Route path="/wizard-test" element={<SimpleWizardTest />} />
                 <Route path="/confirmacao" element={<Confirmacao />} />
                 <Route path="/atendimento" element={<Atendimento />} />
-                <Route path="/vaunossowhatsapp" element={<WhatsAppRedirect />} />
+                <Route path="/WPP-LIBRA" element={<WhatsAppRedirect />} />
                 <Route path="/sucesso" element={<Sucesso />} />
                 <Route path="/home2" element={<Home2 />} />
                 <Route path="*" element={<NotFound />} />

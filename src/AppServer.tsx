@@ -38,6 +38,7 @@ const TestWebhook = lazy(() => import("../temp-files/test-pages/TestWebhook"));
 const Confirmacao = lazy(() => import("./pages/Confirmacao"));
 const Sucesso = lazy(() => import("./pages/Sucesso"));
 const Atendimento = lazy(() => import("./pages/Atendimento"));
+const WhatsAppRedirect = lazy(() => import("./pages/WhatsAppRedirect"));
 
 const Loading = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -107,6 +108,7 @@ const AppServer: React.FC<AppServerProps> = ({ url, initialData = {}, helmetCont
                 <Route path="/wizard-test" element={<SimpleWizardTest />} />
                 <Route path="/confirmacao" element={<Confirmacao />} />
                 <Route path="/atendimento" element={<Atendimento />} />
+                <Route path="/WPP" element={<WhatsAppRedirect />} />
                 <Route path="/sucesso" element={<Sucesso />} />
                 <Route path="/home2" element={<Home2 />} />
                 <Route path="*" element={<NotFound />} />

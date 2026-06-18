@@ -77,10 +77,13 @@ const Index: React.FC = () => {
         data-has-header="true"
         className="flex-grow pt-header"
       >
+        {/* Faixa Separadora Superior Invertida - Ondas para baixo */}
+        <WaveSeparator variant="hero" height="md" inverted />
+
         <HeroPremium />
       
-      {/* Onda azul nasce abaixo da hero clara, sem competir com o cabeçalho */}
-      <WaveSeparator variant="inverted" height="md" inverted />
+      {/* Faixa Separadora com Ondas - Apenas adicionada, sem alterar o resto */}
+      <WaveSeparator variant="hero" height="md" />
       
       <LazySection load={() => import('@/components/TrustBarMinimal')} />
 

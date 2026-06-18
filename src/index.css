@@ -337,11 +337,11 @@
   }
 
   /*
-   * Evita "faixa branca" no rodapé em navegadores mobile (Android),
-   * onde a reserva forçada de gutter pode reduzir a área útil vertical.
-   * Mantemos o gutter estável apenas em dispositivos desktop.
+   * Mantém o layout estável quando a barra de rolagem aparece em desktop.
+   * A largura mínima é necessária porque emulação mobile e dispositivos
+   * híbridos podem reportar hover/pointer fine e criar recuos nas laterais.
    */
-  @media (hover: hover) and (pointer: fine) {
+  @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
     body {
       scrollbar-gutter: stable both-edges;
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, lazy, Suspense, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/useMobileContext';
@@ -8,11 +8,6 @@ import HeroPremium from '@/components/HeroPremium';
 import WaveSeparator from '@/components/ui/WaveSeparator';
 import Header from '@/components/Header';
 import ImageOptimizer from '@/components/ImageOptimizer';
-
-// Lazy loading dos componentes pesados - com threshold otimizado
-const FAQ = lazy(() => import('@/components/FAQ'));
-const BlogSection = lazy(() => import('@/components/BlogSection'));
-const Footer = lazy(() => import('@/components/Footer'));
 
 interface LazySectionProps {
   load: () => Promise<{ default: React.ComponentType<unknown> }>;
@@ -107,9 +102,7 @@ const Index: React.FC = () => {
       
       <WaveSeparator variant="hero" height="md" inverted />
       
-      <Suspense fallback={null}>
-        <FAQ />
-      </Suspense>
+      <LazySection load={() => import('@/components/FAQ')} />
       
       {/* Wave separator acima do botão Conheça a Libra */}
       <WaveSeparator variant="hero" height="md" />
@@ -171,14 +164,10 @@ const Index: React.FC = () => {
       
       <WaveSeparator variant="hero" height="md" inverted />
       
-      <Suspense fallback={null}>
-        <BlogSection />
-      </Suspense>
+      <LazySection load={() => import('@/components/BlogSection')} />
       </main>
 
-      <Suspense fallback={null}>
-        <Footer />
-      </Suspense>
+      <LazySection load={() => import('@/components/Footer')} />
     </div>
   );
 };

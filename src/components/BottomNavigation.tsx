@@ -67,15 +67,12 @@ const BottomNavigation: React.FC = () => {
   useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = 'hidden';
-      document.body.style.scrollbarGutter = 'stable both-axis';
     } else {
       document.body.style.overflow = '';
-      document.body.style.scrollbarGutter = '';
     }
 
     return () => {
       document.body.style.overflow = '';
-      document.body.style.scrollbarGutter = '';
     };
   }, [isMenuOpen]);
 

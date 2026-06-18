@@ -79,21 +79,6 @@ export default defineConfig(({ command, mode }) => ({
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        // Manual chunks para melhor cache e performance
-        manualChunks: {
-          // Vendor chunks separados para melhor cache
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-router': ['react-router-dom'],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-ui': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-select'
-          ],
-          'vendor-utils': ['axios', 'clsx', 'class-variance-authority'],
-          // Separar ícones para melhor tree shaking e parse mais rápido
-          'vendor-icons': ['lucide-react']
-        },
       }
     }
   },

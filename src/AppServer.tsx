@@ -1,5 +1,4 @@
 import { Suspense, lazy } from 'react';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StaticRouter } from "react-router-dom/server";
 import { Routes, Route } from "react-router-dom";
 import ScrollToTop from '@/components/ScrollToTop';
@@ -49,15 +48,6 @@ const Loading = () => (
   </div>
 );
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      cacheTime: 10 * 60 * 1000,
-    },
-  },
-});
-
 interface InitialData { posts?: BlogPostType[]; post?: BlogPostType; }
 
 interface AppServerProps {
@@ -69,9 +59,8 @@ interface AppServerProps {
 const AppServer: React.FC<AppServerProps> = ({ url, initialData = {}, helmetContext }) => {
   return (
     <HelmetProvider context={helmetContext}>
-      <QueryClientProvider client={queryClient}>
-        <MobileProvider>
-          <StaticRouter location={url}>
+      <MobileProvider>
+        <StaticRouter location={url}>
             {typeof window !== 'undefined' && <LazyGlobalTracker />}
             <ScrollToTop />
             <Suspense fallback={<Loading />}>
@@ -114,11 +103,10 @@ const AppServer: React.FC<AppServerProps> = ({ url, initialData = {}, helmetCont
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
-          </StaticRouter>
-          <Toaster />
-          <Analytics />
-        </MobileProvider>
-      </QueryClientProvider>
+        </StaticRouter>
+        <Toaster />
+        <Analytics />
+      </MobileProvider>
     </HelmetProvider>
   );
 };

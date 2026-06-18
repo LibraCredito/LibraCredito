@@ -24,7 +24,7 @@
       }
 
       function scheduleAnalytics() {
-        var fallbackTimer = setTimeout(loadAnalytics, 15000);
+        var fallbackTimer = setTimeout(loadAnalytics, 60000);
         function loadOnce() {
           clearTimeout(fallbackTimer);
           loadAnalytics();

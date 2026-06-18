@@ -19,12 +19,33 @@ const requestIdleCb = (callback: IdleRequestCallback) => {
   }, 1);
 };
 
-const scheduleAfterVitalsWindow = (callback: () => void) => {
+const scheduleNonCriticalWork = (callback: () => void) => {
   if (typeof window === 'undefined') {
     return undefined;
   }
 
-  return window.setTimeout(callback, 15000);
+  let completed = false;
+  const events = ['pointerdown', 'touchstart', 'keydown'] as const;
+  const runOnce = () => {
+    if (completed) return;
+    completed = true;
+    events.forEach((eventName) => {
+      window.removeEventListener(eventName, runOnce);
+    });
+    callback();
+  };
+
+  events.forEach((eventName) => {
+    window.addEventListener(eventName, runOnce, { once: true, passive: true });
+  });
+  const fallbackId = window.setTimeout(runOnce, 60000);
+
+  return () => {
+    window.clearTimeout(fallbackId);
+    events.forEach((eventName) => {
+      window.removeEventListener(eventName, runOnce);
+    });
+  };
 };
 
 const disableLegacyServiceWorkers = async () => {
@@ -76,11 +97,11 @@ const renderApp = () => {
 
 renderApp();
 
-scheduleAfterVitalsWindow(() => {
+scheduleNonCriticalWork(() => {
   void disableLegacyServiceWorkers();
 });
 
-scheduleAfterVitalsWindow(() => {
+scheduleNonCriticalWork(() => {
   void import('@/services/localSimulationService')
     .then(({ LocalSimulationService }) => {
       void LocalSimulationService.resendPendingContacts();

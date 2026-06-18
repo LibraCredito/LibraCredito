@@ -34,7 +34,14 @@ export default defineConfig(({ command, mode }) => ({
       transformIndexHtml(html) {
         const heroPath = path.resolve(__dirname, 'public/hero.html');
         const heroHtml = readFileSync(heroPath, 'utf-8');
-        return html.replace('<div id="root"></div>', `<div id="root">${heroHtml}</div>`);
+        const initialShell = `
+          <div class="initial-header-shell" aria-hidden="true"></div>
+          <main class="initial-main-shell">
+            <div class="initial-wave-shell" aria-hidden="true"></div>
+            ${heroHtml}
+          </main>
+        `;
+        return html.replace('<div id="root"></div>', `<div id="root">${initialShell}</div>`);
       },
     }
   ].filter(Boolean),

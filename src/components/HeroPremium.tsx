@@ -1,4 +1,3 @@
-import TypewriterText from './TypewriterText';
 import HeroButton from '@/components/ui/HeroButton';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Shield from 'lucide-react/dist/esm/icons/shield';
@@ -8,15 +7,6 @@ import scrollToTarget from '@/utils/scrollToTarget';
 
 const HeroPremium: React.FC = () => {
   const navigate = useNavigate();
-
-  const alternatingTexts = [
-    'Crédito com Garantia de Imóvel',
-    'Home Equity',
-    'Capital de Giro Inteligente',
-    'Empréstimo Imobiliário',
-    'Quitação de dívidas',
-
-  ];
 
   const scrollToSimulator = () => {
     navigate('/simulacao');
@@ -54,7 +44,7 @@ const HeroPremium: React.FC = () => {
                 id="hero-heading"
                 className="text-xl md:text-3xl lg:text-4xl font-extrabold mb-4 leading-tight"
               >
-                <TypewriterText strings={alternatingTexts} />
+                <span>Crédito com Garantia de Imóvel</span>
                 <span className="block text-green-700">
                   é mais simples na Libra!
                 </span>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { hydrateRoot, createRoot } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx'
 import './index.css';
 import './styles/overflow-fix.css';
@@ -52,7 +52,9 @@ const disableLegacyServiceWorkers = async () => {
   }
 };
 
-// Hidratação do HTML pré-renderizado para LCP otimizado
+// The build injects a lightweight first-fold shell. Replace it with the
+// interactive application once JavaScript is ready, without hydration
+// mismatches caused by viewport-specific header markup.
 const renderApp = () => {
   // Definir idioma da página
   document.documentElement.lang = 'pt-BR';
@@ -68,11 +70,7 @@ const renderApp = () => {
   
   const root = document.getElementById('root');
   if (root) {
-    if (root.hasChildNodes()) {
-      hydrateRoot(root, <App />);
-    } else {
-      createRoot(root).render(<App />);
-    }
+    createRoot(root).render(<App />);
   }
 };
 

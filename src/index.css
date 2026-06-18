@@ -336,17 +336,6 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /*
-   * Evita "faixa branca" no rodapé em navegadores mobile (Android),
-   * onde a reserva forçada de gutter pode reduzir a área útil vertical.
-   * Mantemos o gutter estável apenas em dispositivos desktop.
-   */
-  @media (hover: hover) and (pointer: fine) {
-    body {
-      scrollbar-gutter: stable both-edges;
-    }
-  }
-  
   /* Melhorar a acessibilidade de foco */
   :focus {
     @apply outline-2 outline-offset-2 outline-libra-blue;

@@ -37,7 +37,7 @@ const UsageCard: React.FC<{
   return (
     <div
       id={id}
-      className={`bg-white rounded-lg shadow-lg border border-gray-100 hover:shadow-xl hover:border-green-500/30 transition-all duration-300 cursor-pointer transform hover:scale-105 ${isMobile ? 'p-3' : 'p-4'} ${id ? 'scroll-mt-header' : ''}`}
+      className={`premium-benefit-card group cursor-pointer ${isMobile ? 'p-4' : 'p-6'} ${id ? 'scroll-mt-header' : ''}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -53,21 +53,21 @@ const UsageCard: React.FC<{
         /* Layout horizontal para mobile - ícone e título lado a lado */
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-green-500 rounded-full p-2 group-hover:bg-green-600 transition-colors">
-              <IconComponent className="w-5 h-5 text-white" />
+            <div className="premium-icon-box">
+              <IconComponent className="w-5 h-5 text-emerald-700" />
             </div>
             <h3 className="text-base font-bold text-gray-800">{title}</h3>
           </div>
-          <p className="text-xs text-gray-600">{description}</p>
+          <p className="text-xs text-slate-600 leading-relaxed">{description}</p>
         </div>
       ) : (
         /* Layout vertical centralizado para desktop */
         <div className="text-center">
-          <div className="bg-green-500 rounded-full p-2 w-fit mx-auto mb-2 group-hover:bg-green-600 transition-colors">
-            <IconComponent className="w-6 h-6 text-white" />
+          <div className="premium-icon-box w-fit mx-auto mb-4">
+            <IconComponent className="w-6 h-6 text-emerald-700" />
           </div>
-          <h3 className="text-lg font-bold text-gray-800 mb-2">{title}</h3>
-          <p className="text-sm text-gray-600">{description}</p>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
+          <p className="text-sm text-slate-600 leading-relaxed">{description}</p>
         </div>
       )}
     </div>
@@ -87,15 +87,18 @@ const Benefits: React.FC = () => {
       {/* Ondas orientadas para cima antes da seção - apenas mobile */}
       {isMobile && <WaveSeparator variant="hero" height="md" inverted />}
       
-      <section id="benefits" className={`${isMobile ? 'pt-4 pb-6' : 'pt-6 md:pt-8 lg:pt-8 xl:pt-10 pb-6 md:pb-8 lg:pb-8 xl:pb-10'} bg-white scroll-mt-header`}>
+      <section id="benefits" className={`${isMobile ? 'pt-6 pb-8' : 'pt-10 md:pt-14 pb-10 md:pb-14'} premium-benefits scroll-mt-header`}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-6 md:mb-8 lg:mb-8 xl:mb-10">
-            <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-green-700 font-semibold uppercase tracking-wider mb-4`}>
-              Soluções para cada necessidade
+            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-emerald-700 font-bold uppercase tracking-[0.18em] mb-3`}>
+              Crédito sob medida
             </p>
-            <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl md:text-4xl'} font-bold text-gray-800 mb-3`}>
-              Como usar o <span className="text-green-700">Crédito com Garantia de Imóvel</span>
+            <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl md:text-4xl'} font-bold text-slate-900 tracking-[-0.03em] mb-3`}>
+              Seu patrimônio pode <span className="text-emerald-700">impulsionar seus planos</span>
             </h2>
+            <p className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto">
+              Mais liberdade para escolher como usar seu crédito, com condições que fazem sentido.
+            </p>
           </div>
           
           <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-3 gap-5'} animate-slide-up max-w-6xl mx-auto mb-6`}>

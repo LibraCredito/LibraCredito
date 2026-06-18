@@ -79,7 +79,7 @@ const Index: React.FC = () => {
       >
         {/* Faixa Separadora Superior Invertida - Ondas para baixo */}
         <WaveSeparator variant="hero" height="md" inverted />
-        
+
         <HeroPremium />
       
       {/* Faixa Separadora com Ondas - Apenas adicionada, sem alterar o resto */}

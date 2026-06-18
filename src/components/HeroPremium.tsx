@@ -103,8 +103,8 @@ const HeroPremium: React.FC = () => {
                   thumbnailSrc="/images/media/video-cgi-libra.webp"
                 />
               </div>
-              <div className="flex items-center justify-center gap-2 pt-3 text-white text-xs md:text-sm">
-                <Shield className="w-4 h-4 flex-shrink-0 text-emerald-300" aria-hidden="true" />
+              <div className="hero-media-caption">
+                <Shield className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                 <span>Atendimento humano com segurança e agilidade</span>
               </div>
             </div>

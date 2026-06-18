@@ -34,7 +34,14 @@ export default defineConfig(({ command, mode }) => ({
       transformIndexHtml(html) {
         const heroPath = path.resolve(__dirname, 'public/hero.html');
         const heroHtml = readFileSync(heroPath, 'utf-8');
-        return html.replace('<div id="root"></div>', `<div id="root">${heroHtml}</div>`);
+        const initialShell = `
+          <div class="initial-header-shell" aria-hidden="true"></div>
+          <main class="initial-main-shell">
+            <div class="initial-wave-shell" aria-hidden="true"></div>
+            ${heroHtml}
+          </main>
+        `;
+        return html.replace('<div id="root"></div>', `<div id="root">${initialShell}</div>`);
       },
     }
   ].filter(Boolean),
@@ -72,21 +79,6 @@ export default defineConfig(({ command, mode }) => ({
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        // Manual chunks para melhor cache e performance
-        manualChunks: {
-          // Vendor chunks separados para melhor cache
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-router': ['react-router-dom'],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-ui': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-select'
-          ],
-          'vendor-utils': ['axios', 'clsx', 'class-variance-authority'],
-          // Separar ícones para melhor tree shaking e parse mais rápido
-          'vendor-icons': ['lucide-react']
-        },
       }
     }
   },

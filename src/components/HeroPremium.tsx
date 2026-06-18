@@ -55,7 +55,7 @@ const HeroPremium: React.FC = () => {
                   simples, inteligente e seguro.
                 </span>
               </h1>
-              <p className="text-sm md:text-base text-slate-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
+              <p className="text-sm md:text-base text-slate-700 leading-relaxed max-w-lg mx-auto lg:mx-0">
                 Transforme o valor do seu imóvel em crédito para realizar planos,
                 organizar a vida financeira ou acelerar seu negócio.
               </p>
@@ -80,8 +80,8 @@ const HeroPremium: React.FC = () => {
                     </HeroButton>
                   </div>
                 </li>
-                <li className="flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-500">
-                  <LockKeyhole className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
+                <li className="flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-600">
+                  <LockKeyhole className="w-3.5 h-3.5 text-[#007a5e]" aria-hidden="true" />
                   Simulação gratuita, segura e sem compromisso
                 </li>
               </ul>
@@ -103,8 +103,8 @@ const HeroPremium: React.FC = () => {
                   thumbnailSrc="/images/media/video-cgi-libra.webp"
                 />
               </div>
-              <div className="flex items-center justify-center gap-2 pt-3 text-[#003399] text-xs md:text-sm">
-                <Shield className="w-4 h-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
+              <div className="flex items-center justify-center gap-2 pt-3 text-white text-xs md:text-sm">
+                <Shield className="w-4 h-4 flex-shrink-0 text-emerald-300" aria-hidden="true" />
                 <span>Atendimento humano com segurança e agilidade</span>
               </div>
             </div>

@@ -11,7 +11,9 @@
 
 /* Premium fintech visual system: CSS-only, with no extra assets or runtime JS. */
 .premium-hero {
-  background: #ffffff;
+  background:
+    radial-gradient(circle at 78% 44%, rgba(0, 51, 153, 0.045), transparent 24rem),
+    #ffffff;
   isolation: isolate;
 }
 
@@ -39,8 +41,8 @@
   height: 26rem;
   right: -12rem;
   top: -14rem;
-  border: 1px solid rgba(0, 51, 153, 0.08);
-  box-shadow: 0 0 80px rgba(0, 51, 153, 0.04);
+  border: 1px solid rgba(0, 51, 153, 0.1);
+  box-shadow: 0 0 80px rgba(0, 51, 153, 0.05);
 }
 
 .premium-hero-glow--two {
@@ -62,9 +64,9 @@
 .hero-eyebrow {
   gap: 0.45rem;
   padding: 0.45rem 0.75rem;
-  border: 1px solid rgba(0, 51, 153, 0.12);
-  background: rgba(0, 51, 153, 0.04);
-  color: #047857;
+  border: 1px solid rgba(0, 51, 153, 0.16);
+  background: #f2f6ff;
+  color: #006b52;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -72,8 +74,8 @@
 }
 
 .hero-gradient-text {
-  color: #047857;
-  background: linear-gradient(90deg, #047857, #10b981);
+  color: #007a5e;
+  background: linear-gradient(90deg, #006b52, #059669);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -82,15 +84,15 @@
 .hero-proof-chip {
   gap: 0.35rem;
   padding: 0.48rem 0.7rem;
-  border: 1px solid rgba(0, 51, 153, 0.12);
-  background: #ffffff;
+  border: 1px solid rgba(0, 51, 153, 0.16);
+  background: #f8faff;
   color: #003399;
-  box-shadow: 0 4px 14px rgba(0, 51, 153, 0.05);
+  box-shadow: 0 4px 14px rgba(0, 51, 153, 0.07);
   font-size: 0.72rem;
 }
 
 .hero-proof-chip svg {
-  color: #059669;
+  color: #007a5e;
 }
 
 .hero-primary-cta {
@@ -106,10 +108,10 @@
 .hero-media-shell {
   position: relative;
   padding: 0.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(0, 51, 153, 0.35);
   border-radius: 1.2rem;
-  background: #ffffff;
-  box-shadow: 0 24px 60px rgba(0, 38, 112, 0.14);
+  background: linear-gradient(145deg, #003399 0%, #064b9d 100%);
+  box-shadow: 0 24px 60px rgba(0, 38, 112, 0.22);
 }
 
 .hero-media-shell::before {
@@ -118,7 +120,7 @@
   inset: -1px;
   z-index: -1;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(0, 51, 153, 0.24), rgba(16, 185, 129, 0.14), transparent 55%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(0, 51, 153, 0.28), transparent 58%);
 }
 
 .hero-media-label {
@@ -126,7 +128,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.15rem 0.35rem 0.6rem;
-  color: #003399;
+  color: #ffffff;
   font-size: 0.7rem;
   font-weight: 700;
 }
@@ -142,6 +144,7 @@
 .hero-media-shell .hero-video {
   overflow: hidden;
   border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .premium-benefits {

@@ -506,7 +506,7 @@ export class LocalSimulationService {
       referrer?: string | null;
     },
     options: { isRetry?: boolean } = {}
-  ): Promise<{success: boolean, message: string}> {
+  ): Promise<{success: boolean, message: string, duplicateLead?: boolean, crmMessage?: string}> {
     try {
       console.log('📧 Processando contato com integração:', input);
       
@@ -665,7 +665,25 @@ export class LocalSimulationService {
       }
 
       const ploomesResult = await ploomesResponse.json();
-      console.log('✅ Sucesso na API Ploomes:', ploomesResult);
+      const ploomesMessage =
+        typeof ploomesResult?.msg === 'string' ? ploomesResult.msg : 'Resposta inválida da API Ploomes';
+      const ploomesStatus = Boolean(ploomesResult?.status);
+      const ploomesDuplicidade =
+        !ploomesStatus &&
+        ploomesMessage.toLowerCase().includes('já existe') &&
+        ploomesMessage.toLowerCase().includes('7 dias');
+      const ploomesCrmMessage = ploomesMessage;
+
+      if (!ploomesStatus && !ploomesDuplicidade) {
+        console.error('❌ API Ploomes recusou o cadastro:', ploomesResult);
+        throw new Error(`API Ploomes recusou o cadastro: ${ploomesMessage}`);
+      }
+
+      if (ploomesDuplicidade) {
+        console.warn('⚠️ Lead duplicado no Ploomes (janela de 7 dias):', ploomesMessage);
+      } else {
+        console.log('✅ Sucesso na API Ploomes:', ploomesResult);
+      }
 
       // Salvar/Atualizar contato no Supabase com dados completos (com retry)
       const maxSupabaseRetries = 3;
@@ -687,7 +705,8 @@ export class LocalSimulationService {
               telefone: sanitizedPhone, // Limpar telefone
               imovel_proprio: input.imovelProprio as 'proprio' | 'terceiro', // Garantir tipo correto
               status: 'interessado', // Status após contato para compatibilidade com AdminDashboard
-              visitor_id: input.visitorId ?? simulationData?.visitor_id ?? null
+              visitor_id: input.visitorId ?? simulationData?.visitor_id ?? null,
+              integrado_crm: ploomesStatus
             };
 
             if (input.utm_source !== undefined) {
@@ -1247,9 +1266,20 @@ export class LocalSimulationService {
         await this.resendPendingContacts();
       }
 
+      if (ploomesDuplicidade) {
+        return {
+          success: true,
+          message: 'Recebemos seus dados, mas já existe uma solicitação com este e-mail no CRM nos últimos 7 dias.',
+          duplicateLead: true,
+          crmMessage: ploomesCrmMessage
+        };
+      }
+
       return {
         success: true,
-        message: 'Dados enviados com sucesso! Nossa equipe entrará em contato em breve.'
+        message: 'Dados enviados com sucesso! Nossa equipe entrará em contato em breve.',
+        duplicateLead: false,
+        crmMessage: ploomesCrmMessage
       };
 
     } catch (error) {

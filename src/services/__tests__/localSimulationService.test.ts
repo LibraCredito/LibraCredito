@@ -78,7 +78,7 @@ describe('LocalSimulationService', () => {
     (global as any).localStorage = new LocalStorageMock();
     (global as any).fetch = vi.fn(async () => ({
       ok: true,
-      json: async () => ({}),
+      json: async () => ({ status: true, msg: 'ok' }),
       status: 200,
       statusText: 'OK',
       headers: { entries: () => [] }

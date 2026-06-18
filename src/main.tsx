@@ -1,5 +1,5 @@
 import React from 'react';
-import { hydrateRoot, createRoot } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx'
 import './index.css';
 import './styles/overflow-fix.css';
@@ -19,12 +19,33 @@ const requestIdleCb = (callback: IdleRequestCallback) => {
   }, 1);
 };
 
-const scheduleAfterVitalsWindow = (callback: () => void) => {
+const scheduleNonCriticalWork = (callback: () => void) => {
   if (typeof window === 'undefined') {
     return undefined;
   }
 
-  return window.setTimeout(callback, 15000);
+  let completed = false;
+  const events = ['pointerdown', 'touchstart', 'keydown'] as const;
+  const runOnce = () => {
+    if (completed) return;
+    completed = true;
+    events.forEach((eventName) => {
+      window.removeEventListener(eventName, runOnce);
+    });
+    callback();
+  };
+
+  events.forEach((eventName) => {
+    window.addEventListener(eventName, runOnce, { once: true, passive: true });
+  });
+  const fallbackId = window.setTimeout(runOnce, 60000);
+
+  return () => {
+    window.clearTimeout(fallbackId);
+    events.forEach((eventName) => {
+      window.removeEventListener(eventName, runOnce);
+    });
+  };
 };
 
 const disableLegacyServiceWorkers = async () => {
@@ -52,7 +73,9 @@ const disableLegacyServiceWorkers = async () => {
   }
 };
 
-// Hidratação do HTML pré-renderizado para LCP otimizado
+// The build injects a lightweight first-fold shell. Replace it with the
+// interactive application once JavaScript is ready, without hydration
+// mismatches caused by viewport-specific header markup.
 const renderApp = () => {
   // Definir idioma da página
   document.documentElement.lang = 'pt-BR';
@@ -68,21 +91,17 @@ const renderApp = () => {
   
   const root = document.getElementById('root');
   if (root) {
-    if (root.hasChildNodes()) {
-      hydrateRoot(root, <App />);
-    } else {
-      createRoot(root).render(<App />);
-    }
+    createRoot(root).render(<App />);
   }
 };
 
 renderApp();
 
-scheduleAfterVitalsWindow(() => {
+scheduleNonCriticalWork(() => {
   void disableLegacyServiceWorkers();
 });
 
-scheduleAfterVitalsWindow(() => {
+scheduleNonCriticalWork(() => {
   void import('@/services/localSimulationService')
     .then(({ LocalSimulationService }) => {
       void LocalSimulationService.resendPendingContacts();

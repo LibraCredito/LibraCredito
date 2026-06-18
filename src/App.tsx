@@ -1,5 +1,4 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrollToTop from '@/components/ScrollToTop';
 import { MobileProvider } from '@/hooks/useMobileContext';
@@ -64,36 +63,48 @@ const Loading = () => (
   </div>
 );
 
-// Configure query client outside component to prevent re-initialization
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
-    },
-  },
-});
-
 const App = () => {
   const [AnalyticsComponent, setAnalyticsComponent] = useState<React.ComponentType | null>(null);
 
   useEffect(() => {
-    if (import.meta.env.PROD) {
+    if (!import.meta.env.PROD) {
+      return undefined;
+    }
+
+    let loaded = false;
+    const events = ['pointerdown', 'touchstart', 'keydown'] as const;
+    const loadAnalytics = () => {
+      if (loaded) return;
+      loaded = true;
+      events.forEach((eventName) => {
+        window.removeEventListener(eventName, loadAnalytics);
+      });
       import('@vercel/analytics/react').then((m) => {
         setAnalyticsComponent(() => m.Analytics);
       });
-    }
+    };
+
+    events.forEach((eventName) => {
+      window.addEventListener(eventName, loadAnalytics, { once: true, passive: true });
+    });
+    const fallbackId = window.setTimeout(loadAnalytics, 60000);
+
+    return () => {
+      window.clearTimeout(fallbackId);
+      events.forEach((eventName) => {
+        window.removeEventListener(eventName, loadAnalytics);
+      });
+    };
   }, []);
 
   return (
     <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <MobileProvider>
-          <BrowserRouter>
-            <LazyGlobalTracker />
-            <ScrollToTop />
-            <Suspense fallback={<Loading />}>
-              <Routes>
+      <MobileProvider>
+        <BrowserRouter>
+          <LazyGlobalTracker />
+          <ScrollToTop />
+          <Suspense fallback={<Loading />}>
+            <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/vantagens" element={
                   <Suspense fallback={<Loading />}>
@@ -125,13 +136,12 @@ const App = () => {
                 <Route path="/WPP" element={<WhatsAppRedirect />} />
                 <Route path="/sucesso" element={<Sucesso />} />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-          <Toaster />
-          {AnalyticsComponent && <AnalyticsComponent />}
-        </MobileProvider>
-      </QueryClientProvider>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+        <Toaster />
+        {AnalyticsComponent && <AnalyticsComponent />}
+      </MobileProvider>
     </HelmetProvider>
   );
 };

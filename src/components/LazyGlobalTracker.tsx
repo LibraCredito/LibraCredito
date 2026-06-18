@@ -1,18 +1,34 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 const GlobalTracker = lazy(() => import('./GlobalTracker'));
+const TRACKER_FALLBACK_DELAY = 60000;
+const interactionEvents = ['pointerdown', 'touchstart', 'keydown'] as const;
 
 const LazyGlobalTracker = () => {
   const [shouldLoad, setShouldLoad] = useState(false);
 
   useEffect(() => {
-    const load = () => setShouldLoad(true);
-    if ('requestIdleCallback' in window) {
-      const id = (window as any).requestIdleCallback(load);
-      return () => (window as any).cancelIdleCallback(id);
-    }
-    const id = window.setTimeout(load, 1000);
-    return () => window.clearTimeout(id);
+    let loaded = false;
+    const load = () => {
+      if (loaded) return;
+      loaded = true;
+      setShouldLoad(true);
+      interactionEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, load);
+      });
+    };
+
+    interactionEvents.forEach((eventName) => {
+      window.addEventListener(eventName, load, { once: true, passive: true });
+    });
+    const fallbackId = window.setTimeout(load, TRACKER_FALLBACK_DELAY);
+
+    return () => {
+      window.clearTimeout(fallbackId);
+      interactionEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, load);
+      });
+    };
   }, []);
 
   return shouldLoad ? (

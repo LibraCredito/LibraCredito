@@ -62,10 +62,7 @@ const OptimizedYouTube: FC<OptimizedYouTubeProps> = ({
   const fetchPriorityAttr = fetchPriority ?? (priority ? 'high' : undefined);
 
 
-  const mountPlayer = (
-    container: HTMLElement,
-    Player: new (...args: any[]) => any,
-  ) => {
+  const preparePlayerContainer = (container: HTMLElement) => {
     container.innerHTML = '';
     const div = document.createElement('div');
     div.style.position = 'absolute';
@@ -74,23 +71,47 @@ const OptimizedYouTube: FC<OptimizedYouTubeProps> = ({
     div.style.height = '100%';
     container.appendChild(div);
 
-    const player = new Player(div, {
+    return div;
+  };
+
+  const mountPlayer = (
+    container: HTMLElement,
+    Player: new (...args: any[]) => any,
+  ) => {
+    const playerContainer = preparePlayerContainer(container);
+
+    new Player(playerContainer, {
       width: '100%',
       height: '100%',
       videoId,
       playerVars: { autoplay: 1, playsinline: 1, modestbranding: 1, rel: 0 },
+      events: {
+        onReady: ({ target: player }: { target: any }) => {
+          player.unMute();
+          player.setVolume(100);
+          player.playVideo();
+        },
+      },
     });
+  };
 
-    player.unMute();
-    player.setVolume(100);
-    player.playVideo();
+  const mountIframe = (container: HTMLElement) => {
+    const playerContainer = preparePlayerContainer(container);
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&modestbranding=1&rel=0`;
+    iframe.title = title;
+    iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+    iframe.allowFullscreen = true;
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    playerContainer.appendChild(iframe);
   };
 
   const loadVideo = (e: MouseEvent<HTMLButtonElement>) => {
     const container = e.currentTarget.parentElement as HTMLElement | null;
     if (!container || typeof window === 'undefined') return;
 
-    const fallbackUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const w = window as typeof window & {
       YT?: { Player?: new (...args: any[]) => any };
     };
@@ -107,11 +128,11 @@ const OptimizedYouTube: FC<OptimizedYouTubeProps> = ({
           return;
         }
 
-        window.open(fallbackUrl, '_blank', 'noopener');
+        mountIframe(container);
       })
       .catch((error) => {
         console.error('Erro ao carregar a API do YouTube', error);
-        window.open(fallbackUrl, '_blank', 'noopener');
+        mountIframe(container);
       });
   };
 

@@ -11,19 +11,17 @@
 
 /* Premium fintech visual system: CSS-only, with no extra assets or runtime JS. */
 .premium-hero {
-  background:
-    radial-gradient(circle at 78% 22%, rgba(27, 199, 132, 0.17), transparent 25rem),
-    linear-gradient(125deg, #021a44 0%, #003399 54%, #064a8e 100%);
+  background: #ffffff;
   isolation: isolate;
 }
 
 .premium-hero-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.11;
+  opacity: 0.04;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+    linear-gradient(rgba(0, 51, 153, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 51, 153, 0.18) 1px, transparent 1px);
   background-size: 42px 42px;
   mask-image: linear-gradient(to right, black, transparent 70%);
   pointer-events: none;
@@ -41,8 +39,8 @@
   height: 26rem;
   right: -12rem;
   top: -14rem;
-  border: 1px solid rgba(124, 255, 203, 0.25);
-  box-shadow: 0 0 80px rgba(23, 201, 126, 0.1);
+  border: 1px solid rgba(0, 51, 153, 0.08);
+  box-shadow: 0 0 80px rgba(0, 51, 153, 0.04);
 }
 
 .premium-hero-glow--two {
@@ -50,7 +48,7 @@
   height: 18rem;
   left: -9rem;
   bottom: -12rem;
-  border: 1px solid rgba(100, 180, 255, 0.2);
+  border: 1px solid rgba(0, 51, 153, 0.08);
 }
 
 .hero-eyebrow,
@@ -64,9 +62,9 @@
 .hero-eyebrow {
   gap: 0.45rem;
   padding: 0.45rem 0.75rem;
-  border: 1px solid rgba(167, 243, 208, 0.26);
-  background: rgba(6, 78, 59, 0.24);
-  color: #a7f3d0;
+  border: 1px solid rgba(0, 51, 153, 0.12);
+  background: rgba(0, 51, 153, 0.04);
+  color: #047857;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -74,8 +72,8 @@
 }
 
 .hero-gradient-text {
-  color: #6ee7b7;
-  background: linear-gradient(90deg, #6ee7b7, #d1fae5);
+  color: #047857;
+  background: linear-gradient(90deg, #047857, #10b981);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -84,18 +82,19 @@
 .hero-proof-chip {
   gap: 0.35rem;
   padding: 0.48rem 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-  color: #eff6ff;
+  border: 1px solid rgba(0, 51, 153, 0.12);
+  background: #ffffff;
+  color: #003399;
+  box-shadow: 0 4px 14px rgba(0, 51, 153, 0.05);
   font-size: 0.72rem;
 }
 
 .hero-proof-chip svg {
-  color: #6ee7b7;
+  color: #059669;
 }
 
 .hero-primary-cta {
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(0, 51, 153, 0.1);
   background: linear-gradient(105deg, #ef4444, #dc2626) !important;
   box-shadow: 0 14px 34px rgba(220, 38, 38, 0.28);
 }
@@ -109,8 +108,8 @@
   padding: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 1.2rem;
-  background: rgba(255, 255, 255, 0.09);
-  box-shadow: 0 28px 65px rgba(0, 10, 38, 0.32);
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(0, 38, 112, 0.14);
 }
 
 .hero-media-shell::before {
@@ -119,7 +118,7 @@
   inset: -1px;
   z-index: -1;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(110, 231, 183, 0.45), transparent 45%);
+  background: linear-gradient(135deg, rgba(0, 51, 153, 0.24), rgba(16, 185, 129, 0.14), transparent 55%);
 }
 
 .hero-media-label {
@@ -127,7 +126,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.15rem 0.35rem 0.6rem;
-  color: #dbeafe;
+  color: #003399;
   font-size: 0.7rem;
   font-weight: 700;
 }

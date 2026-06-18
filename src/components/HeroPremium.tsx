@@ -40,7 +40,7 @@ const HeroPremium: React.FC = () => {
 
       <div className="container mx-auto px-4 md:px-6 relative z-10 flex-grow flex flex-col justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-7 lg:gap-12 items-center py-7 md:py-10">
-          <div className="text-white max-w-xl mx-auto space-y-4 text-center lg:text-left flex flex-col items-center lg:items-start">
+          <div className="text-[#003399] max-w-xl mx-auto space-y-4 text-center lg:text-left flex flex-col items-center lg:items-start">
             <div className="w-full">
               <div className="hero-eyebrow mx-auto lg:mx-0">
                 <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
@@ -55,7 +55,7 @@ const HeroPremium: React.FC = () => {
                   simples, inteligente e seguro.
                 </span>
               </h1>
-              <p className="text-sm md:text-base text-blue-100/90 leading-relaxed max-w-lg mx-auto lg:mx-0">
+              <p className="text-sm md:text-base text-slate-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
                 Transforme o valor do seu imóvel em crédito para realizar planos,
                 organizar a vida financeira ou acelerar seu negócio.
               </p>
@@ -80,8 +80,8 @@ const HeroPremium: React.FC = () => {
                     </HeroButton>
                   </div>
                 </li>
-                <li className="flex items-center justify-center lg:justify-start gap-2 text-xs text-blue-100/80">
-                  <LockKeyhole className="w-3.5 h-3.5 text-emerald-300" aria-hidden="true" />
+                <li className="flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-500">
+                  <LockKeyhole className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
                   Simulação gratuita, segura e sem compromisso
                 </li>
               </ul>
@@ -103,8 +103,8 @@ const HeroPremium: React.FC = () => {
                   thumbnailSrc="/images/media/video-cgi-libra.webp"
                 />
               </div>
-              <div className="flex items-center justify-center gap-2 pt-3 text-blue-50 text-xs md:text-sm">
-                <Shield className="w-4 h-4 flex-shrink-0 text-emerald-300" aria-hidden="true" />
+              <div className="flex items-center justify-center gap-2 pt-3 text-[#003399] text-xs md:text-sm">
+                <Shield className="w-4 h-4 flex-shrink-0 text-emerald-600" aria-hidden="true" />
                 <span>Atendimento humano com segurança e agilidade</span>
               </div>
             </div>
@@ -114,7 +114,7 @@ const HeroPremium: React.FC = () => {
         <div className="flex justify-center mt-1 md:mt-2">
           <button
             onClick={scrollToBenefits}
-            className="text-white flex flex-col items-center opacity-70 hover:opacity-100 transition-opacity"
+            className="text-[#003399] flex flex-col items-center opacity-60 hover:opacity-100 transition-opacity"
             aria-label="Rolar para benefícios"
           >
             <ChevronDown className="w-5 h-5 animate-bounce" />

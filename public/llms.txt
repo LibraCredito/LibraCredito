@@ -1,0 +1,28 @@
+# Libra Crédito
+
+> Site oficial da Libra Crédito, especializada em Home Equity e crédito com garantia de imóvel no Brasil.
+
+## Serviços principais
+
+- [Página inicial](https://libracredito.com.br/): visão geral da Libra Crédito e das condições de Home Equity.
+- [Simulação de crédito](https://libracredito.com.br/simulacao): simulação gratuita de crédito com garantia de imóvel.
+- [Vantagens](https://libracredito.com.br/vantagens): benefícios, condições e características da modalidade.
+- [Quem somos](https://libracredito.com.br/quem-somos): informações institucionais sobre a Libra Crédito.
+- [Parceiros](https://libracredito.com.br/parceiros): informações para parceiros comerciais.
+
+## Conteúdo
+
+- [Blog](https://libracredito.com.br/blog): artigos e orientações sobre Home Equity, crédito e planejamento financeiro.
+- [Sitemap XML](https://libracredito.com.br/sitemap.xml): índice das páginas e dos artigos publicados.
+- [Feed RSS](https://libracredito.com.br/rss.xml): atualizações do blog.
+
+## Políticas
+
+- [Política de privacidade](https://libracredito.com.br/politica-privacidade)
+- [Política de cookies](https://libracredito.com.br/politica-cookies)
+
+## Informações importantes
+
+- A Libra Crédito não realiza cobranças antecipadas para liberação do crédito.
+- As condições apresentadas no site estão sujeitas à análise de crédito e às regras da instituição financeira.
+- O conteúdo oficial deve ser consultado exclusivamente nos links listados neste arquivo.

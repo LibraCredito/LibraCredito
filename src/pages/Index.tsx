@@ -128,18 +128,11 @@ const Index: React.FC = () => {
           </div>
         </section>
       ) : (
-        <section 
+        <button
+          type="button"
           className="w-full bg-[#003399] flex justify-center py-8 cursor-pointer hover:bg-[#002277] transition-colors"
           onClick={goToQuemSomos}
           aria-label="Clique para conhecer mais sobre a Libra Crédito"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              goToQuemSomos();
-            }
-          }}
         >
           <div className="flex items-center px-4 max-w-full">
             <ImageOptimizer
@@ -158,7 +151,7 @@ const Index: React.FC = () => {
               Crédito justo, equilibrado e consciente!
             </span>
           </div>
-        </section>
+        </button>
 
       )}
       

@@ -71,22 +71,26 @@ const TestimonialCard = memo(({ name, age, text, isMobile, isActive, currentInde
         
         {/* Faixa separadora fixa acima das bolas */}
         <div className="border-t border-gray-100 pt-2 mt-4 mt-auto">
-          <div className="flex justify-center gap-1">
+          <div className="flex justify-center">
             {Array.from({ length: totalTestimonials }).map((_, index) => (
               <button
                 key={index}
-                className={`rounded-full transition-all duration-300 hover:scale-150 ${
-                  currentIndex === index ? 'bg-libra-navy' : 'bg-gray-300 hover:bg-gray-400'
-                }`}
-                style={{
-                  width: isMobile ? '6px' : '4px',
-                  height: isMobile ? '6px' : '4px',
-                  minWidth: isMobile ? '6px' : '4px',
-                  minHeight: isMobile ? '6px' : '4px'
+                type="button"
+                className="flex h-11 w-11 items-center justify-center rounded-full"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onNavigate(index);
                 }}
-                onClick={() => onNavigate(index)}
                 aria-label={`Ver depoimento ${index + 1}`}
-              />
+                aria-pressed={currentIndex === index}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`block rounded-full transition-transform duration-300 ${
+                    currentIndex === index ? 'bg-libra-navy scale-125' : 'bg-gray-300'
+                  } ${isMobile ? 'h-1.5 w-1.5' : 'h-1 w-1'}`}
+                />
+              </button>
             ))}
           </div>
         </div>
@@ -160,7 +164,8 @@ const Testimonials: React.FC = () => {
           <div className="relative h-full overflow-visible">
             {!isMobile && (
               <button
-                className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 bg-white rounded-full shadow-md hover:bg-gray-50"
+                type="button"
+                className="absolute -left-11 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-11 h-11 bg-white rounded-full shadow-md hover:bg-gray-50"
 
                 onClick={() =>
                   setCurrentTestimonial(
@@ -195,7 +200,8 @@ const Testimonials: React.FC = () => {
             </div>
             {!isMobile && (
               <button
-                className="absolute -right-6 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 bg-white rounded-full shadow-md hover:bg-gray-50"
+                type="button"
+                className="absolute -right-11 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-11 h-11 bg-white rounded-full shadow-md hover:bg-gray-50"
 
                 onClick={() =>
                   setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)

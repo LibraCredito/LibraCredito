@@ -336,17 +336,6 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /*
-   * Mantém o layout estável quando a barra de rolagem aparece em desktop.
-   * A largura mínima é necessária porque emulação mobile e dispositivos
-   * híbridos podem reportar hover/pointer fine e criar recuos nas laterais.
-   */
-  @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
-    body {
-      scrollbar-gutter: stable both-edges;
-    }
-  }
-  
   /* Melhorar a acessibilidade de foco */
   :focus {
     @apply outline-2 outline-offset-2 outline-libra-blue;

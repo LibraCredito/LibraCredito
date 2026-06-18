@@ -11,9 +11,10 @@ import ImageOptimizer from '@/components/ImageOptimizer';
 
 interface LazySectionProps {
   load: () => Promise<{ default: React.ComponentType<unknown> }>;
+  reservedClassName: string;
 }
 
-const LazySection: React.FC<LazySectionProps> = ({ load }) => {
+const LazySection: React.FC<LazySectionProps> = ({ load, reservedClassName }) => {
   const [Component, setComponent] = useState<React.ComponentType<unknown> | null>(
     null,
   );
@@ -45,7 +46,11 @@ const LazySection: React.FC<LazySectionProps> = ({ load }) => {
     return () => observer.disconnect();
   }, []);
 
-  return <div ref={ref}>{Component ? <Component /> : null}</div>;
+  return (
+    <div ref={ref} className={reservedClassName}>
+      {Component ? <Component /> : null}
+    </div>
+  );
 };
 
 
@@ -85,24 +90,42 @@ const Index: React.FC = () => {
       {/* Faixa Separadora com Ondas - Apenas adicionada, sem alterar o resto */}
       <WaveSeparator variant="hero" height="md" />
       
-      <LazySection load={() => import('@/components/TrustBarMinimal')} />
+      <LazySection
+        load={() => import('@/components/TrustBarMinimal')}
+        reservedClassName="min-h-[112px] md:min-h-[104px]"
+      />
 
-      <LazySection load={() => import('@/components/Benefits')} />
+      <LazySection
+        load={() => import('@/components/Benefits')}
+        reservedClassName="min-h-[850px] lg:min-h-[520px]"
+      />
 
       {/* Faixa azul com logo - apenas para desktop */}
       {!isMobile && (
-        <LazySection load={() => import('@/components/LogoBand')} />
+        <LazySection
+          load={() => import('@/components/LogoBand')}
+          reservedClassName="min-h-[112px]"
+        />
       )}
 
-      <LazySection load={() => import('@/components/Testimonials')} />
+      <LazySection
+        load={() => import('@/components/Testimonials')}
+        reservedClassName="min-h-[620px] lg:min-h-[470px]"
+      />
 
       <WaveSeparator variant="hero" height="md" />
 
-      <LazySection load={() => import('@/components/MediaSection')} />
+      <LazySection
+        load={() => import('@/components/MediaSection')}
+        reservedClassName="min-h-[500px] md:min-h-[390px]"
+      />
       
       <WaveSeparator variant="hero" height="md" inverted />
       
-      <LazySection load={() => import('@/components/FAQ')} />
+      <LazySection
+        load={() => import('@/components/FAQ')}
+        reservedClassName="min-h-[520px] md:min-h-[700px]"
+      />
       
       {/* Wave separator acima do botão Conheça a Libra */}
       <WaveSeparator variant="hero" height="md" />
@@ -157,10 +180,16 @@ const Index: React.FC = () => {
       
       <WaveSeparator variant="hero" height="md" inverted />
       
-      <LazySection load={() => import('@/components/BlogSection')} />
+      <LazySection
+        load={() => import('@/components/BlogSection')}
+        reservedClassName="min-h-[1320px] md:min-h-[760px]"
+      />
       </main>
 
-      <LazySection load={() => import('@/components/Footer')} />
+      <LazySection
+        load={() => import('@/components/Footer')}
+        reservedClassName="min-h-[500px] md:min-h-[460px]"
+      />
     </div>
   );
 };

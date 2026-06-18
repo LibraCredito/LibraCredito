@@ -21,11 +21,15 @@ describe('OptimizedYouTube', () => {
     const setVolume = vi.fn();
     const playVideo = vi.fn();
 
-    const PlayerMock = vi.fn().mockImplementation(() => ({
-      unMute,
-      setVolume,
-      playVideo,
-    }));
+    const PlayerMock = vi.fn().mockImplementation((_element, options) => {
+      options.events.onReady({
+        target: {
+          unMute,
+          setVolume,
+          playVideo,
+        },
+      });
+    });
 
     (window as any).YT = { Player: PlayerMock };
 
@@ -41,5 +45,19 @@ describe('OptimizedYouTube', () => {
     expect(setVolume).toHaveBeenCalledWith(100);
     expect(playVideo).toHaveBeenCalled();
   });
-});
 
+  it('does not open a new tab when the player is started', () => {
+    const openSpy = vi.spyOn(window, 'open');
+    const PlayerMock = vi.fn();
+    (window as any).YT = { Player: PlayerMock };
+
+    const { container } = render(
+      <OptimizedYouTube videoId="abc123" title="Test Video" />
+    );
+
+    fireEvent.click(container.querySelector('button') as HTMLButtonElement);
+
+    expect(PlayerMock).toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+});

@@ -4,8 +4,11 @@ import DOMPurify from 'dompurify';
 export const renderMarkdown = (content: string): string => {
   if (!content) return '';
 
+  const hasEncodedTags = /&lt;\/?[a-z][\s\S]*&gt;/i.test(content);
+  const normalizedContent = hasEncodedTags ? decodeHtmlEntities(content) : content;
+
   // Parse markdown to HTML and sanitize
-  const parsed = marked.parse(content);
+  const parsed = marked.parse(normalizedContent);
   const sanitized = DOMPurify.sanitize(parsed);
 
   // Inject Tailwind classes into allowed elements
@@ -32,6 +35,12 @@ export const renderMarkdown = (content: string): string => {
   addClass('li', 'mb-2 text-gray-700');
 
   return div.innerHTML;
+};
+
+const decodeHtmlEntities = (value: string): string => {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = value;
+  return textarea.value;
 };
 
 export default renderMarkdown;

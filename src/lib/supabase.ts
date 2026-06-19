@@ -198,6 +198,12 @@ export interface BlogPostData {
   updated_at?: string;
 }
 
+export interface SecurityDefinerView {
+  view_schema: string;
+  view_name: string;
+  reloptions?: string[] | null;
+}
+
 // Schema do banco para TypeScript
 export interface Database {
   public: {
@@ -484,6 +490,13 @@ export const supabaseApi = {
     
     if (error) throw error;
     return data;
+  },
+
+  async getSecurityDefinerViews(): Promise<SecurityDefinerView[]> {
+    const { data, error } = await supabase.rpc('get_security_definer_views');
+
+    if (error) throw error;
+    return (data ?? []) as SecurityDefinerView[];
   },
 
   // Blog Posts

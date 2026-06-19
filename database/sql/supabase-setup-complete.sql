@@ -376,6 +376,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION public.get_security_definer_views()
+RETURNS TABLE (
+    view_schema TEXT,
+    view_name TEXT,
+    reloptions TEXT[]
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+    SELECT 
+        n.nspname as view_schema,
+        c.relname as view_name,
+        c.reloptions
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relkind = 'v'
+    AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+    AND EXISTS (
+        SELECT 1
+        FROM unnest(COALESCE(c.reloptions, ARRAY[]::TEXT[])) option_value
+        WHERE option_value ILIKE 'security_definer=%'
+    );
+$$;
+
 -- =====================================================
 -- 16. TABELA DE LOG DE LIMPEZA
 -- =====================================================

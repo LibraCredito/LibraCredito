@@ -40,7 +40,7 @@
  * @see {@link formatBRL} para formatação de valores
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { validateForm } from '@/utils/validations';
@@ -80,6 +80,22 @@ const SimulationForm: React.FC = () => {
   const [erro, setErro] = useState('');
   const [apiMessage, setApiMessage] = useState<ApiMessageAnalysis | null>(null);
   const [isRuralProperty, setIsRuralProperty] = useState(false);
+  const resultScrollTimeout = useRef<number | null>(null);
+  const messageScrollTimeout = useRef<number | null>(null);
+
+  const clearTimeoutRef = (timeoutRef: React.MutableRefObject<number | null>) => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimeoutRef(resultScrollTimeout);
+      clearTimeoutRef(messageScrollTimeout);
+    };
+  }, []);
 
   // Validações
   const validation = validateForm(emprestimo, garantia, parcelas, amortizacao, cidade);
@@ -117,26 +133,62 @@ const SimulationForm: React.FC = () => {
 
   // Função para rolar para o resultado no mobile
   const scrollToResult = () => {
-    if (isMobile) {
-      setTimeout(() => {
-        const resultElement = document.querySelector('[data-result-section="true"]');
-        if (resultElement) {
-          (resultElement as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 300); // Delay para garantir que o resultado seja renderizado
-    }
+    if (!isMobile || typeof window === 'undefined') return;
+
+    clearTimeoutRef(resultScrollTimeout);
+    resultScrollTimeout.current = window.setTimeout(() => {
+      const resultElement = document.querySelector('[data-result-section="true"]') as HTMLElement | null;
+      if (!resultElement) {
+        return;
+      }
+
+      const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 0;
+      const safeOffset = headerHeight + 16; // 16px de respiro entre o header e o cartão
+      const rect = resultElement.getBoundingClientRect();
+
+      const isAboveViewport = rect.top < safeOffset;
+      const isBelowViewport = rect.bottom > window.innerHeight;
+
+      if (!isAboveViewport && !isBelowViewport) {
+        return;
+      }
+
+      const targetTop = rect.top + window.pageYOffset - safeOffset;
+      window.scrollTo({
+        top: Math.max(targetTop, 0),
+        behavior: 'smooth'
+      });
+    }, 160);
   };
 
   // Rolagem para mensagens de limite (rural/ltv30) no mobile
   const scrollToApiMessage = () => {
-    if (isMobile) {
-      setTimeout(() => {
-        const messageElement = document.querySelector('[data-api-message="true"]');
-        if (messageElement) {
-          (messageElement as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 300);
-    }
+    if (!isMobile || typeof window === 'undefined') return;
+
+    clearTimeoutRef(messageScrollTimeout);
+    messageScrollTimeout.current = window.setTimeout(() => {
+      const messageElement = document.querySelector('[data-api-message="true"]') as HTMLElement | null;
+      if (!messageElement) {
+        return;
+      }
+
+      const headerHeight = document.querySelector('header')?.getBoundingClientRect().height ?? 0;
+      const rect = messageElement.getBoundingClientRect();
+      const safeOffset = headerHeight + rect.height / 2;
+      const targetTop = rect.top + window.pageYOffset - safeOffset;
+
+      const isFullyVisible =
+        rect.top >= headerHeight && rect.bottom <= window.innerHeight - 16;
+
+      if (isFullyVisible) {
+        return;
+      }
+
+      window.scrollTo({
+        top: Math.max(targetTop, 0),
+        behavior: 'smooth'
+      });
+    }, 160);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

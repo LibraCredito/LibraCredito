@@ -8,6 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 import type { BlogPost as BlogPostType } from '@/data/blogPosts';
 import LazyGlobalTracker from '@/components/LazyGlobalTracker';
 import { HelmetProvider, type FilledContext } from 'react-helmet-async';
+import { isExperienceV2Enabled } from '@/lib/featureFlags';
 
 const TooltipProvider = lazy(() => import('@/components/ui/tooltip').then(m => ({ default: m.TooltipProvider })));
 
@@ -38,6 +39,7 @@ const Confirmacao = lazy(() => import("./pages/Confirmacao"));
 const Sucesso = lazy(() => import("./pages/Sucesso"));
 const Atendimento = lazy(() => import("./pages/Atendimento"));
 const WhatsAppRedirect = lazy(() => import("./pages/WhatsAppRedirect"));
+const ExperiencePreview = lazy(() => import('./pages/ExperiencePreview'));
 
 const Loading = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -57,6 +59,7 @@ interface AppServerProps {
 }
 
 const AppServer: React.FC<AppServerProps> = ({ url, initialData = {}, helmetContext }) => {
+  const experienceV2Enabled = isExperienceV2Enabled();
   return (
     <HelmetProvider context={helmetContext}>
       <MobileProvider>
@@ -99,6 +102,7 @@ const AppServer: React.FC<AppServerProps> = ({ url, initialData = {}, helmetCont
                 <Route path="/atendimento" element={<Atendimento />} />
                 <Route path="/WPP" element={<WhatsAppRedirect />} />
                 <Route path="/sucesso" element={<Sucesso />} />
+                {experienceV2Enabled && <Route path="/nova-experiencia" element={<ExperiencePreview />} />}
                 <Route path="/home2" element={<Home2 />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

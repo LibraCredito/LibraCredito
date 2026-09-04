@@ -4,6 +4,7 @@ import ScrollToTop from '@/components/ScrollToTop';
 import { MobileProvider } from '@/hooks/useMobileContext';
 import LazyGlobalTracker from '@/components/LazyGlobalTracker';
 import { HelmetProvider } from 'react-helmet-async';
+import { isExperienceV2Enabled } from '@/lib/featureFlags';
 
 // Lazy load TooltipProvider para LCP
 const TooltipProvider = lazy(() => import('@/components/ui/tooltip').then(m => ({ default: m.TooltipProvider })));
@@ -29,6 +30,7 @@ const Confirmacao = lazy(() => import("./pages/Confirmacao"));
 const Sucesso = lazy(() => import("./pages/Sucesso"));
 const Atendimento = lazy(() => import("./pages/Atendimento"));
 const WhatsAppRedirect = lazy(() => import("./pages/WhatsAppRedirect"));
+const ExperiencePreview = lazy(() => import('./pages/ExperiencePreview'));
 
 let devRoutes = null;
 
@@ -65,6 +67,7 @@ const Loading = () => (
 
 const App = () => {
   const [AnalyticsComponent, setAnalyticsComponent] = useState<React.ComponentType | null>(null);
+  const experienceV2Enabled = isExperienceV2Enabled();
 
   useEffect(() => {
     if (!import.meta.env.PROD) {
@@ -135,6 +138,7 @@ const App = () => {
                 <Route path="/atendimento" element={<Atendimento />} />
                 <Route path="/WPP" element={<WhatsAppRedirect />} />
                 <Route path="/sucesso" element={<Sucesso />} />
+                {experienceV2Enabled && <Route path="/nova-experiencia" element={<ExperiencePreview />} />}
                 <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
